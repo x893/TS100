@@ -1,13 +1,3 @@
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. **********************
-File Name :      CTRL.c
-Version :        S100 APP Ver 2.11
-Description:
-Author :         Celery
-Data:            2015/08/03
-History:
-2015/07/07   Í³Ò»ÃüÃû£»
-2015/08/03   ÓÅ»¯ÒÆ¶¯ÅÐ¶¨
-*******************************************************************************/
 #include <stdio.h>
 #include <string.h>
 #include "CTRL.h"
@@ -20,480 +10,540 @@ History:
 #include "I2C.h"
 #include "Oled.h"
 
-#define HEATINGCYCLE  30
+#define HEATINGCYCLE	30
+
 /******************************************************************************/
-DEVICE_INFO_SYS device_info;
-u8 gHanders;
-extern u8 gSet_opt;
-extern u8 gTemperatureshowflag;
+extern uint8_t gSet_opt;
 /******************************************************************************/
 
-u8 gCtrl_status = 1;
-u16 gHt_flag = 0;
-vs16 gTemp_data = 250;//25¡æ
-s16 gPrev_temp = 250; // Ç°Ò»¸öÎÂ¶ÈÖµ
-u8 gIs_restartkey = 0;/*ÈíÖØÆô±êÖ¾*/
-u8 gPre_status = 1;
-u8 TEMP_SET_Pos = 0;//ÉèÖÃÄ£Ê½±êÖ¾Î» 0£ºÖ»ÁÙÊ±¸Ä±äÎÂ¶È 1£º¸Ä±äÉèÖÃ²ÎÊý²¢±£´æ
+DEVICE_INFO_SYS device_info;
+
+typedef struct {
+	volatile int16_t gTemp_data;
+	int16_t gPrev_temp;
+	uint16_t gHt_flag;
+	uint8_t gCtrl_status;
+	uint8_t gIs_restartkey;
+	uint8_t gPre_status;
+	uint8_t TEMP_SET_Pos;
+	uint8_t gHanders;
+} CTRL_Context_t;
+
+CTRL_Context_t CTRL_Context = {
+	.gTemp_data = 250,
+	.gPrev_temp = 250,
+	.gHt_flag = 0,
+	.gCtrl_status = 1,
+	.gIs_restartkey	= 0,
+	.gPre_status	= 1,
+	.TEMP_SET_Pos	= 0
+};
 
 const DEVICE_INFO_SYS info_def = {
-    "2.17",     //Ver
-    2000,       //T_Standby;    // 200¡ãC=1800  2520,´ý»úÎÂ¶È
-    3000,       // T_Work;      // 350¡ãC=3362, ¹¤×÷ÎÂ¶È
-    100,        //T_Step;
-    3*60*100,   //Wait_Time;    //3*60*100   3  mintute
-    6*60*100,    // Idle_Time;   //6*60*100  6 minute
-    0           //handers
+    "2.17",			// Ver
+    2000,			// T_Standby;    // 200??C=1800  2520,?????¶?
+    3000,			// T_Work;      // 350??C=3362, ?????¶?
+    100,			// T_Step;
+    3 * 60 * 100,	// Wait_Time;    //3*60*100   3  mintute
+    6 * 60 * 100,	// Idle_Time;   //6*60*100  6 minute
+    0				// handers
 };
+
 struct _pid {
-    s16 settemp;        //¶¨ÒåÉè¶¨ÎÂ¶È
-    s16 actualtemp;     //¶¨ÒåÊµ¼ÊÎÂ¶È
-    s16 err;            //¶¨ÒåÎÂ¶È²îÖµ
-    s16 err_last;       //¶¨ÒåÉÏÒ»¸öÎÂ¶È²îÖµ
-    s32 ht_time;        //¶¨Òå¼ÓÈÈÊ±¼ä
-    u16 kp,ki,kd;       //¶¨Òå±ÈÀý¡¢»ý·Ö¡¢Î¢·ÖÏµÊý
-    s32 integral;       //¶¨Òå»ý·ÖÖµ
+	int16_t settemp;	//¶¨ÒåÉè¶¨ÎÂ¶È
+	int16_t actualtemp;	//¶¨ÒåÊµ¼ÊÎÂ¶È
+	int16_t err;		//¶¨ÒåÎÂ¶È²îÖµ
+	int16_t err_last;	//¶¨ÒåÉÏÒ»¸öÎÂ¶È²îÖµ
+	int32_t ht_time;	//¶¨Òå¼ÓÈÈÊ±¼ä
+	uint16_t kp,ki,kd;	//¶¨Òå±ÈÀý¡¢»ý·Ö¡¢Î¢·ÖÏµÊý
+	int32_t integral;	//¶¨Òå»ý·ÖÖµ
 } pid;
 
 /*******************************************************************************
-º¯ÊýÃû: Get_Ctrl_Status
-º¯Êý×÷ÓÃ:»ñÈ¡µ±Ç°×´Ì¬
-ÊäÈë²ÎÊý:ÎÞ
-·µ»Ø²ÎÊý:µ±Ç°×´Ì¬
+@@name  Get_Ctrl_Status
+@@brief »ñÈ¡µ±Ç°×´Ì¬
+@@param ÎÞ
+@@return µ±Ç°×´Ì¬
 *******************************************************************************/
 u8 Get_CtrlStatus(void)
 {
-    return gCtrl_status;
+	return CTRL_Context.gCtrl_status;
 }
+
+uint8_t Get_TEMP_SET_Pos(void)
+{
+	return CTRL_Context.TEMP_SET_Pos;
+}
+
+uint8_t Get_Handers(void)
+{
+	return CTRL_Context.gHanders;
+}
+
+void Set_Handers(uint8_t handers)
+{
+	CTRL_Context.gHanders = handers;
+}
+
 /*******************************************************************************
-º¯ÊýÃû: Set_CtrlStatus
-º¯Êý×÷ÓÃ:ÉèÖÃµ±Ç°×´Ì¬
-ÊäÈë²ÎÊý:status ÉèÖÃµÄ×´Ì¬
-·µ»Ø²ÎÊý:ÎÞ
+@@name  Set_CtrlStatus
+@@brief ÉèÖÃµ±Ç°×´Ì¬
+@@param status ÉèÖÃµÄ×´Ì¬
+@@return ÎÞ
 *******************************************************************************/
 void Set_CtrlStatus(u8 status)
 {
-    gCtrl_status = status;
+	CTRL_Context.gCtrl_status = status;
 }
 /*******************************************************************************
-º¯ÊýÃû: Set_PrevTemp
-º¯Êý×÷ÓÃ:±£´æÇ°Ò»ÎÂ¶È
-ÊäÈë²ÎÊý:temp Ç°Ò»ÎÂ¶ÈÖµ
-·µ»Ø²ÎÊý:ÎÞ
+@@name  Set_PrevTemp
+@@brief ±£´æÇ°Ò»ÎÂ¶È
+@@param temp Ç°Ò»ÎÂ¶ÈÖµ
+@@return ÎÞ
 *******************************************************************************/
 void Set_PrevTemp(s16 temp)
 {
-    gPrev_temp = temp;
+	CTRL_Context.gPrev_temp = temp;
 }
 
 /*******************************************************************************
-º¯ÊýÃû: Get_HtFlag
-º¯Êý×÷ÓÃ:»ñÈ¡µ±Ç°¼ÓÈÈ±êÖ¾,¼ÓÈÈ±êÖ¾ÓÉ¼ÓÈÈÊ±¼ä¾ö¶¨
-ÊäÈë²ÎÊý:NULL
-·µ»Ø²ÎÊý:µ±Ç°¼ÓÈÈ±êÖ¾
+@@name  Get_HtFlag
+@@brief »ñÈ¡µ±Ç°¼ÓÈÈ±êÖ¾,¼ÓÈÈ±êÖ¾ÓÉ¼ÓÈÈÊ±¼ä¾ö¶¨
+@@param NULL
+@@return µ±Ç°¼ÓÈÈ±êÖ¾
 *******************************************************************************/
 u16 Get_HtFlag(void)
 {
-    return gHt_flag;
+	return CTRL_Context.gHt_flag;
 }
 /*******************************************************************************
-º¯ÊýÃû: Get_TempVal
-º¯Êý×÷ÓÃ: »ñÈ¡µ±Ç°ÎÂ¶ÈµÄÖµ
-ÊäÈë²ÎÊý:NULL
-·µ»Ø²ÎÊý:µ±Ç°ÎÂ¶È
+@@name  Get_TempVal
+@@brief  »ñÈ¡µ±Ç°ÎÂ¶ÈµÄÖµ
+@@param NULL
+@@return µ±Ç°ÎÂ¶È
 *******************************************************************************/
 s16 Get_TempVal(void)
 {
-    return gTemp_data;
+	return CTRL_Context.gTemp_data;
 }
 
 /*******************************************************************************
-º¯ÊýÃû: System_Init
-º¯Êý×÷ÓÃ: ÏµÍ³³õÊ¼»¯
-ÊäÈë²ÎÊý:NULL
-·µ»Ø²ÎÊý:NULL
+@@name  System_Init
+@@brief  ÏµÍ³³õÊ¼»¯
+@@param NULL
+@@return NULL
 *******************************************************************************/
 void System_Init(void)
 {
-    memcpy((void*)&device_info,(void*)&info_def,sizeof(device_info));
+	memcpy((void *)&device_info, (void*)&info_def, sizeof(device_info));
 }
 /*******************************************************************************
-º¯ÊýÃû: PID_init
-º¯Êý×÷ÓÃ: PIDÊý¾Ý³õÊ¼»¯
-ÊäÈë²ÎÊý:NULL
-·µ»Ø²ÎÊý:NULL
+@@name  PID_init
+@@brief  PIDÊý¾Ý³õÊ¼»¯
+@@param NULL
+@@return NULL
 *******************************************************************************/
 void Pid_Init(void)
 {
-    pid.settemp     = 0;
-    pid.actualtemp  = 0;
-    pid.err         = 0;
-    pid.err_last    = 0;
-    pid.integral    = 0;
-    pid.ht_time     = 0;
-    pid.kp          = 15;
-    pid.ki          = 2;
-    pid.kd          = 1;
+	pid.settemp		= 0;
+	pid.actualtemp	= 0;
+	pid.err			= 0;
+	pid.err_last	= 0;
+	pid.integral	= 0;
+	pid.ht_time		= 0;
+	pid.kp			= 15;
+	pid.ki			= 2;
+	pid.kd			= 1;
 }
 
 /*******************************************************************************
-º¯ÊýÃû: Pid_Realize
-º¯Êý×÷ÓÃ: PID×ÔÕû¶¨¼ÓÈÈÊ±¼ä
-ÊäÈë²ÎÊý:tempµ±Ç°ÎÂ¶È
-·µ»Ø²ÎÊý:·µ»ØÊý¾Ýµ¥Î»/50us
+@@name  Pid_Realize
+@@brief  PID×ÔÕû¶¨¼ÓÈÈÊ±¼ä
+@@param tempµ±Ç°ÎÂ¶È
+@@return ·µ»ØÊý¾Ýµ¥Î»/50us
 *******************************************************************************/
-u16 Pid_Realize(s16 temp)
+uint16_t Pid_Realize(int16_t temp)
 {
-    u8 index = 0,index1 = 1;
-    s16 d_err = 0;
+	u8 index = 0, index1 = 1;
+	int16_t d_err = 0;
 
-    pid.actualtemp   = temp;
-    pid.err          = pid.settemp - pid.actualtemp;    //ÎÂ²î
+	pid.actualtemp	= temp;
+	pid.err			= pid.settemp - pid.actualtemp;	//ÎÂ²î
 
-    if(pid.err >= 500)  index = 0;
-    else {
-        index = 1;
-        pid.integral    += pid.err;//»ý·ÖÏî
-    }
+	if (pid.err >= 500)  index = 0;
+	else
+	{
+		index = 1;
+		pid.integral += pid.err;//»ý·ÖÏî
+	}
+
 ////////////////////////////////////////////////////////////////////////////////
 //½µÎÂÈ¥»ý·Ö
-    if(pid.settemp < pid.actualtemp) {
-        d_err = pid.actualtemp - pid.settemp;
-        if(d_err > 20) {
-            pid.integral = 0; //¹ý³å5¡æ
-            index1 = 0;
-            index = 0;
-        }
-    }
+	if (pid.settemp < pid.actualtemp)
+	{
+		d_err = pid.actualtemp - pid.settemp;
+		if (d_err > 20)
+		{
+			pid.integral = 0; //¹ý³å5¡æ
+			index1 = 0;
+			index = 0;
+		}
+	}
 ////////////////////////////////////////////////////////////////////////////////
-    if(pid.err <= 30) index1 = 0;
-    else index1 = 1;
-    pid.ht_time     = pid.kp * pid.err + pid.ki * index * pid.integral + pid.kd * (pid.err - pid.err_last)*index1;
-    pid.err_last    = pid.err;
+	index1 = (pid.err <= 30) ? 0 : 1;
 
-    if(pid.ht_time <= 0)          pid.ht_time = 0;
-    else if(pid.ht_time > 30*200) pid.ht_time = 30*200;
+	pid.ht_time	 = pid.kp * pid.err + pid.ki * index * pid.integral + pid.kd * (pid.err - pid.err_last) * index1;
+	pid.err_last	= pid.err;
 
-    return pid.ht_time;
+	if (pid.ht_time <= 0)				pid.ht_time = 0;
+	else if (pid.ht_time > 30 * 200)	pid.ht_time = 30 * 200;
 
+	return pid.ht_time;
 }
 
 /*******************************************************************************
-º¯ÊýÃû: Heating_Time
-º¯Êý×÷ÓÃ: ¼ÆËã¼ÓÈÈ±êÖ¾£¬·µ»Ø¼ÓÈÈÊ±¼ä
-ÊäÈë²ÎÊý:tempµ±Ç°ÎÂ¶È£¬wk_temp ¹¤×÷ÎÂ¶È
-·µ»Ø²ÎÊý:·µ»ØÊý¾Ýµ¥Î»/50us
+@@name  Heating_Time
+@@brief  ¼ÆËã¼ÓÈÈ±êÖ¾£¬·µ»Ø¼ÓÈÈÊ±¼ä
+@@param tempµ±Ç°ÎÂ¶È£¬wk_temp ¹¤×÷ÎÂ¶È
+@@return ·µ»ØÊý¾Ýµ¥Î»/50us
 *******************************************************************************/
-u32 Heating_Time(s16 temp,s16 wk_temp)
+uint32_t Heating_Time(int16_t temp, int16_t wk_temp)
 {
-    u32 heat_timecnt;
+	uint32_t heat_timecnt;
 
-    pid.settemp = wk_temp;
-    if(wk_temp > temp) {
-        if(wk_temp - temp >= 18)gHt_flag = 0;//¼ÓÈÈ
-        else gHt_flag = 2;//ºãÎÂ
-    } else {
-        if(temp - wk_temp <= 18)gHt_flag = 2;//ºãÎÂ
-        else gHt_flag = 1;//½µÎÂ
-    }
+	pid.settemp = wk_temp;
+	if (wk_temp > temp)
+		CTRL_Context.gHt_flag = (wk_temp - temp >= 18) ? 0 : 2;
+	else
+		CTRL_Context.gHt_flag = (temp - wk_temp <= 18) ? 2 : 1;
 
-    heat_timecnt = Pid_Realize(temp);//Sub_data * 1000;
-
-    return heat_timecnt;
+	heat_timecnt = Pid_Realize(temp);
+	return heat_timecnt;
 }
+
 /*******************************************************************************
-º¯ÊýÃû: Status_Tran
-º¯Êý×÷ÓÃ: ¸ù¾Ý°´¼ü¡¢ÎÂ¶ÈÅÐ¶ÏµÈ¿ØÖÆ×´Ì¬×ª»»
-ÊäÈë²ÎÊý: NULL
-·µ»Ø²ÎÊý: NULL
+@@name		Status_Tran
+@@brief		According to the key, temperature control and other control state conversion
+@@param		NULL
+@@return	NULL
 *******************************************************************************/
-void Status_Tran(void)//×´Ì¬×ª»»
+void Status_Tran(void)// State transition
 {
-    static u16 init_waitingtime = 0;//³õÊ¼´ý»úÊ±¼ä±êÖ¾Î»: 0=> Î´³õÊ¼»¯,1=>ÒÑ³õÊ¼»¯
-//    static u8 back_prestatus = 0;
-    s16 heat_timecnt = 0,wk_temp ;
-    u16 mma_active;
-    static u8 temo_set_pos=1;
-    
-    
-    switch (Get_CtrlStatus()) {//»ñÈ¡µ±Ç°×´Ì¬
-        case IDLE://´ý»ú×´Ì¬
-            switch(Get_gKey()) {
-                case KEY_V1://µ¥°´A¼ü£¬½øÈë¿ØÎÂ×´Ì¬
-                    if(gIs_restartkey != 1) {//ÖØÆô±êÖ¾Î»gIs_restartkey²»Îª1
-                        if(Read_Vb(1) < 4) {//ÅÐ¶ÏµçÑ¹ÊÇ·ñÕý³£
-                            Set_CtrlStatus(TEMP_CTR);//ÉèÖÃµ±Ç°×´Ì¬Îª¿ØÎÂ×´Ì¬
-                            init_waitingtime    = 0;//³õÊ¼»¯µÈ´ý¼ÆÊý
-                            TEMPSHOW_TIMER  = 0;//³õÊ¼»¯¼ÆÊ±Æ÷
-                            UI_TIMER = 0;//Í¼ÏñÑÓÊ± = 0
-                            G6_TIMER = 0;
-                        }
-                    }
-                    break;
-                case KEY_V2:////µ¥°´B¼ü
-                    if(gIs_restartkey != 1) {
-        //                Set_CtrlStatus(THERMOMETER);//½øÈëÎÂ¶È¼ÆÄ£Ê½
-        //                UI_TIMER = 0;
-        //                Set_LongKeyFlag(1);
-                        TEMP_SET_Pos = 1;//¸Ä±ä²ÎÊý²¢±£´æ
-                        Display_Str8(0,"                ",0);
-                        SetOpt_UI(0);
-                        EFFECTIVE_KEY_TIMER = 1000;//ÍË³öÉèÖÃÄ£Ê½Ê±¼ä³õÊ¼»¯
-                        Clear_Screen();
-                                        gSet_opt = HD;
-                        Set_CtrlStatus(TEMP_SET);//½øÈëÉèÖÃÄ£Ê½
-                        KD_TIMER = 50; //
-                    }
-                    break;
-                case KEY_CN|KEY_V3://Í¬Ê±°´ABÁ½¼ü
-                    break;
-            }
-            if(gIs_restartkey && (KD_TIMER == 0)) {
-                gIs_restartkey = 0;//³õÊ¼»¯
-                Set_gKey(NO_KEY);
-            }
-            if(Read_Vb(1) == 0) {//µçÑ¹Òì³£½øÈë±¨¾¯Ä£Ê½
-                if(Get_UpdataFlag() == 1) Set_UpdataFlag(0);
-                Set_CtrlStatus(ALARM);//ALARM£º±¨¾¯Ä£Ê½
-            }
-            if(gPre_status != WAIT && gPre_status != IDLE) {//ÆÁÄ»±£»¤×Ô¶¯ºÚÆÁ
-                G6_TIMER = device_info.idle_time;
-                Set_gKey(NO_KEY);
-                gPre_status = IDLE;
-            }
-            break;
-        case TEMP_CTR://ÎÂ¿Ø×´Ì¬£¬ÀÓÌú¹¤×÷µÄÖ÷Òª×´Ì¬
-            if(temo_set_pos)//´ÓÉèÖÃ×´Ì¬»Øµ½¿ØÎÂ×´Ì¬
-            {
-                temo_set_pos = 0;
-                Delay_uS(10000000);//ÑÓÊ±
-                Set_LongKeyFlag(1);
-                Set_gKey(NO_KEY);
-            }
-            switch(Get_gKey()) {
-                case KEY_CN|KEY_V1:
-                case KEY_CN|KEY_V2://³¤°´ÈÎÒâ¼ü
-                    Set_HeatingTime(0);//¼ÓÈÈÊ±¼äÉèÖÃÎª0£¬Í£Ö¹¼ÓÈÈ
-                    Clear_Screen();
-                    TEMP_SET_Pos = 0;//ÉèÖÃÄ£Ê½Ö»¸Ä±äÁÙÊ±ÎÂ¶È
-                    Set_CtrlStatus(TEMP_SET);//½øÈëÉèÖÃÄ£Ê½
-                    Set_gKey(NO_KEY);//Çå³ý°´¼ü
-                    HEATING_TIMER       = 0;//ÄÚ²¿¼ÓÈÈ
-                    EFFECTIVE_KEY_TIMER = 1000;//ÍË³öÉèÖÃÄ£Ê½Ê±¼ä³õÊ¼»¯
-                    KD_TIMER = 150;//°´¼üÑÓÊ±
-                    break;
-                case KEY_CN|KEY_V3://Í¬Ê±°´ABÁ½¼ü
-                    Set_HeatingTime(0);
-                    Set_LongKeyFlag(0);//ÉèÖÃ³¤°´±êÖ¾Î» = 0
-                    Set_CtrlStatus(IDLE);//·µ»Ø´ý»ú×´Ì¬
-                    gPre_status = IDLE;
-                    gIs_restartkey = 1;//ÖØÆô±êÖ¾
-                    KD_TIMER = 50; //
-                    break;
-            }
+	// Initial Standby Time Flag: 0 => Uninitialized, 1 => Initialized
+	static int16_t init_waitingtime = 0;
+	static uint8_t temo_set_pos = 1;
 
-            if(Read_Vb(1) >= 4) {
-                Set_HeatingTime(0);//ÉèÖÃ¼ÓÈÈÊ±¼ä
-                Set_LongKeyFlag(0);
-                Set_CtrlStatus(IDLE);//µ±Ç°×´Ì¬ÉèÖÃ
-                gPre_status = TEMP_CTR;
-                gIs_restartkey = 1;//ÈíÖØÆô±êÖ¾Î»1
-                KD_TIMER = 50; // 2Ãë
-            }
-            if(gTemperatureshowflag)    wk_temp = TemperatureShow_Change(1,device_info.t_work);
-            else                        wk_temp = device_info.t_work;
-            if(HEATING_TIMER == 0) {//¼ÆÊ±½áÊø
-                gTemp_data    = Get_Temp(wk_temp);
-                heat_timecnt  = Heating_Time(gTemp_data,wk_temp);  //¼ÆËã¼ÓÈÈÊ±¼ä
-                Set_HeatingTime(heat_timecnt);
-                HEATING_TIMER = HEATINGCYCLE;
-            }
-            if(Get_HeatingTime() == 0) {
-                HEATING_TIMER = 0;
-            }
+	int16_t heat_timecnt = 0, wk_temp;
+	
+	switch (Get_CtrlStatus())	// Get the current status
+	{	
+	case IDLE:// standby mode
+		switch(Get_gKey())
+		{
+		case KEY_V1:	// Press the A key to enter the temperature control state
+			if (CTRL_Context.gIs_restartkey != 1 && Read_Vb(1) < 4)
+			{	// Restart flag bit gIs_restartkey not 1
+				// To determine whether the voltage is normal
+				Set_CtrlStatus(TEMP_CTR);	// Set the current state to temperature control
+				init_waitingtime	= 0;	// Initialize wait count
+				TEMPSHOW_TIMER  = 0;		// Initialize the timer
+				UI_TIMER = 0;				// Image delay = 0
+				G6_TIMER = 0;
+			}
+			break;
+		case KEY_V2:	// Press the B button
+			if (CTRL_Context.gIs_restartkey != 1)
+			{
+//				Set_CtrlStatus(THERMOMETER);//½øÈëÎÂ¶È¼ÆÄ£Ê½
+//				UI_TIMER = 0;
+//				Set_LongKeyFlag(1);
+				CTRL_Context.TEMP_SET_Pos = 1;	// Change the parameters and save them
+				Display_Str8(0,"                ",0);
+				SetOpt_UI(0);
+				EFFECTIVE_KEY_TIMER = 1000;	// Exit Setup Mode Time Initialization
+				Clear_Screen();
+				gSet_opt = HD;
+				Set_CtrlStatus(TEMP_SET);	// Go to setup mode
+				KD_TIMER = 50;
+			}
+			break;
+		case KEY_CN | KEY_V3:	// Press AB two keys at the same time
+			break;
+		}
 
-            mma_active = Get_MmaShift();
-            if(mma_active == 0) { //MMA_active = 0 ==> static ,MMA_active = 1 ==>move
-                if(init_waitingtime == 0) {
-                    init_waitingtime    = 1;
-                    ENTER_WAIT_TIMER = device_info.wait_time;
-                }
-                if((init_waitingtime != 0) && (ENTER_WAIT_TIMER == 0)) {
-                    gHt_flag     = 0;
-                    UI_TIMER     = 0;
-                    Set_HeatingTime(0);
-                    Set_gKey(0);
-                    G6_TIMER = device_info.idle_time;
-                    Set_CtrlStatus(WAIT);
-                }
-            } else {
-                init_waitingtime = 0;
-            }
-            if(Get_AlarmType() > NORMAL_TEMP) {   //////////////////¾¯¸æ
-                if(Get_UpdataFlag() == 1) Set_UpdataFlag(0);
-                Set_CtrlStatus(ALARM);
-            }
-            break;
-        case WAIT://ÐÝÃß×´Ì¬
-            if(gTemperatureshowflag)    wk_temp = TemperatureShow_Change(1,device_info.t_standby);
-            else                        wk_temp = device_info.t_standby;
-            if(device_info.t_standby > device_info.t_work) { //ÐÝÃßÎÂ¶È±È¹¤×÷ÎÂ¶È¸ß
-                if(gTemperatureshowflag)    wk_temp = TemperatureShow_Change(1,device_info.t_work);
-                else                        wk_temp = device_info.t_work;//²»ÔÙÉýÎÂ±£³ÖµÍµÄÒ»ÏîÎÂ¶È
-            }
-            if(HEATING_TIMER == 0) {
-                gTemp_data    = Get_Temp(wk_temp);
-                heat_timecnt  = Heating_Time(gTemp_data,wk_temp);  //¼ÆËã¼ÓÈÈÊ±¼ä
-                Set_HeatingTime(heat_timecnt);
-                HEATING_TIMER = 30;
-            }
+		if (CTRL_Context.gIs_restartkey && (KD_TIMER == 0))
+		{
+			CTRL_Context.gIs_restartkey = 0;// Initialization
+			Set_gKey(NO_KEY);
+		}
 
-            if(Read_Vb(1) >= 4) {
-                Set_HeatingTime(0);
-                Set_LongKeyFlag(0);
-                Set_CtrlStatus(IDLE);
-                G6_TIMER = device_info.idle_time;
-                gPre_status = WAIT;
-                gIs_restartkey = 1;
-                KD_TIMER = 50; // 2Ãë
-            }
+		if (Read_Vb(1) == 0)
+		{	// The voltage goes into alarm mode
+			if (Get_UpdataFlag() == 1) Set_UpdataFlag(0);
+			Set_CtrlStatus(ALARM);	// ALARM: Alarm mode
+		}
 
-            if(G6_TIMER == 0) { //½øÈë´ý»ú
-                Set_HeatingTime(0);
-                Set_LongKeyFlag(0);
-                gIs_restartkey = 1;
-                KD_TIMER = 200; // 2Ãë
-                gPre_status = WAIT;
-                Set_CtrlStatus(IDLE);
-            }
+		if (CTRL_Context.gPre_status != WAIT && CTRL_Context.gPre_status != IDLE)
+		{	// Screen protection is automatically black
+			G6_TIMER = device_info.idle_time;
+			Set_gKey(NO_KEY);
+			CTRL_Context.gPre_status = IDLE;
+		}
+		break;
+	case TEMP_CTR:	// Temperature control state, the main state of the work of soldering iron
+		if (temo_set_pos)
+		{	// From the set state to the temperature control state
+			temo_set_pos = 0;
+			Delay_uS(10000000);
+			Set_LongKeyFlag(1);
+			Set_gKey(NO_KEY);
+		}
+		switch(Get_gKey())
+		{
+		case KEY_CN | KEY_V1:
+		case KEY_CN | KEY_V2:		// Long press any key
+			Clear_HeatingTime();	// The heating time is set to 0 to stop heating
+			Clear_Screen();
+			CTRL_Context.TEMP_SET_Pos = 0;	// The setting mode only changes the temporary temperature
+			Set_CtrlStatus(TEMP_SET);	// Go to setup mode
+			Set_gKey(NO_KEY);			// Clear the key
+			HEATING_TIMER		= 0;	// Internal heating
+			EFFECTIVE_KEY_TIMER	= 1000;	// Exit Setup Mode Time Initialization
+			KD_TIMER = 150;				// Key delay
+			break;
+		case KEY_CN|KEY_V3:		// Press AB two keys at the same time
+			Clear_HeatingTime();
+			Set_LongKeyFlag(0);		// Set the long press flag = 0
+			Set_CtrlStatus(IDLE);	// Return to standby
+			CTRL_Context.gPre_status = IDLE;
+			CTRL_Context.gIs_restartkey = 1;		// Restart flag
+			KD_TIMER = 50;
+			break;
+		}
 
-            mma_active = Get_MmaShift();
-            if(mma_active == 1 || Get_gKey() != 0) {
-                UI_TIMER      = 0;
-                G6_TIMER      = 0;
-                init_waitingtime = 0;
-                Set_CtrlStatus(TEMP_CTR);
-            }
+		if (Read_Vb(1) >= 4)
+		{
+			Clear_HeatingTime();	// Set the heating time
+			Set_LongKeyFlag(0);
+			Set_CtrlStatus(IDLE);	// Current status setting
+			CTRL_Context.gPre_status = TEMP_CTR;
+			CTRL_Context.gIs_restartkey = 1;		// Soft restart flag 1
+			KD_TIMER = 50;			// 2 seconds
+		}
 
-            if(Get_AlarmType() > NORMAL_TEMP) {   //////////////////¾¯¸æ
-                if(Get_UpdataFlag() == 1) Set_UpdataFlag(0);
-                Set_CtrlStatus(ALARM);
-            }
-            break;
-        case TEMP_SET://ÎÂ¶ÈÉèÖÃ×´Ì¬
-            if(EFFECTIVE_KEY_TIMER == 0) {//Ê±¼äºÄ¾¡
-                gCalib_flag = 1;
-                gTime[5]=1;
-                if(TEMP_SET_Pos == 1)//±£´æÐÞ¸ÄµÄ²ÎÊý
-                {
-                    Disk_BuffInit();//´ÅÅÌÊý¾Ý³õÊ¼»¯
-                    Config_Analysis();// Æô¶¯ÐéÄâUÅÌ
-                }
-                gCalib_flag = 0;
-                temo_set_pos=1;
-                if(TEMP_SET_Pos == 0)
-                {
-                    Set_LongKeyFlag(0);//ÉèÖÃ³¤°´±êÖ¾Î» = 0
-                    Set_gKey(NO_KEY);
-                    Delay_uS(3000000);
-                    Set_CtrlStatus(TEMP_CTR);//·µ»ØÎÂ¿Ø×´Ì¬
-                    TEMPSHOW_TIMER = 0;//¼ÆÊ±Æ÷³õÊ¼»¯
-                }
-                else 
-                {
-                    Set_HeatingTime(0);
-                    Set_LongKeyFlag(0);//ÉèÖÃ³¤°´±êÖ¾Î» = 0
-                    Set_CtrlStatus(IDLE);//·µ»Ø´ý»ú×´Ì¬
-                    gPre_status = TEMP_CTR;
-                    gIs_restartkey = 1;//ÖØÆô±êÖ¾
-                    KD_TIMER = 100; 
-                }
-            }
-            if(Get_gKey() == (KEY_CN|KEY_V3) && TEMP_SET_Pos == 0){//Í¬Ê±³¤°´AB¼üÍÆ³öÎÂ¶ÈÉèÖÃ×´Ì¬
-    //            gCalib_flag = 1;
-    //            Disk_BuffInit();
-    //            Config_Analysis();         // Æô¶¯ÐéÄâUÅÌ
-    //            gCalib_flag = 0;
-    //            Set_CtrlStatus(VOLT);
-                EFFECTIVE_KEY_TIMER = 0;
-                Set_gKey(NO_KEY);
-                Set_LongKeyFlag(0);//ÉèÖÃ³¤°´±êÖ¾Î» = 0
-            }
-            
-            break;
-        case VOLT:
-            if(KD_TIMER > 0) {
-                Set_gKey(NO_KEY);
-                break;
-            }
-            if(Get_gKey() != NO_KEY){
-                EFFECTIVE_KEY_TIMER = 1000;//°´¼üË¢ÐÂÊ±¼ä
-                Set_CtrlStatus(TEMP_CTR);
-            }
-            break;
-    //        case THERMOMETER://ÎÂ¶È¼ÆÄ£Ê½
-    //        if(KD_TIMER > 0) {
-    //            Set_gKey(NO_KEY);
-    //            break;
-    //        }
-    //        switch(Get_gKey()) {
-    //        case KEY_CN|KEY_V1:
-    //        case KEY_CN|KEY_V2:
-    //          back_prestatus = 1;
-    //            break;
-    //        case KEY_CN|KEY_V3:
-    //            Zero_Calibration();//Ð£×¼Áãµã
-    //            if(Get_CalFlag() == 1) {
-    //                Disk_BuffInit();
-    //                Config_Analysis();         // Æô¶¯ÐéÄâUÅÌ
-    //            }
-    //            KD_TIMER = 200; //20150717 ÐÞ¸Ä
-    //            break;
-    //        default:
-    //            break;
-    //        }
-    //        if(back_prestatus == 1) {
-    //            back_prestatus = 0;
-    //            Set_HeatingTime(0);
-    //            Set_CtrlStatus(IDLE);
-    //            gPre_status = THERMOMETER;
-    //            gIs_restartkey = 1;
-    //            Set_LongKeyFlag(0);
-    //            KD_TIMER = 50; //
-    //        }
-    //        break;
-        case ALARM://¾¯¸æÄ£Ê½
-            switch(Get_AlarmType()) {
-                case HIGH_TEMP:
-                case SEN_ERR:
-                    if(gTemperatureshowflag)    wk_temp = TemperatureShow_Change(1,device_info.t_standby);
-                    else                        wk_temp = device_info.t_standby;
-                    gTemp_data  = Get_Temp(wk_temp);
-                    if(Get_AlarmType() == NORMAL_TEMP) {
-                        Set_CtrlStatus(TEMP_CTR);
-                        Set_UpdataFlag(0);
-                    }
-                    break;
-                case HIGH_VOLTAGE:
-                case LOW_VOLTAGE:
-                    if(Read_Vb(1) >= 1 && Read_Vb(1) <= 3) {
-                        Set_HeatingTime(0);
-                        Set_LongKeyFlag(0);
-                        gIs_restartkey = 1;
-                        UI_TIMER = 2; // 2Ãë
-                        gPre_status = THERMOMETER;
-                        Set_CtrlStatus(IDLE);
-                    }
-                    break;
-            }
-          if(Get_HeatingTime != 0) {
-              Set_HeatingTime(0) ;                          //ÂíÉÏÍ£Ö¹¼ÓÈÈ
-              HEAT_OFF();
-          }
-          break;
-          default:
-          break;
-    }
+		wk_temp = (Get_TemperatureShowFlag())
+					? TemperatureShow_Change(1, device_info.t_work)
+					: device_info.t_work;
+
+		if (HEATING_TIMER == 0)
+		{	// Timing is over
+			CTRL_Context.gTemp_data	= Get_Temp(wk_temp);
+			heat_timecnt  = Heating_Time(CTRL_Context.gTemp_data,wk_temp);  // Calculate the heating time
+			Set_HeatingTime(heat_timecnt);
+			HEATING_TIMER = HEATINGCYCLE;
+		}
+		if (Get_HeatingTime() == 0)
+			HEATING_TIMER = 0;
+
+		if (Get_MmaShift() == 0)
+		{	// MMA_active = 0 ==> static, MMA_active = 1 ==> move
+			if (init_waitingtime == 0)
+			{
+				init_waitingtime	= 1;
+				ENTER_WAIT_TIMER = device_info.wait_time;
+			}
+			if (init_waitingtime != 0 && ENTER_WAIT_TIMER == 0)
+			{
+				CTRL_Context.gHt_flag	 = 0;
+				UI_TIMER	 = 0;
+				Clear_HeatingTime();
+				Set_gKey(0);
+				G6_TIMER = device_info.idle_time;
+				Set_CtrlStatus(WAIT);
+			}
+		} else
+			init_waitingtime = 0;
+
+		if (Get_AlarmType() > NORMAL_TEMP)
+		{	// caveat
+			if (Get_UpdataFlag() == 1) Set_UpdataFlag(0);
+			Set_CtrlStatus(ALARM);
+		}
+		break;
+	case WAIT:// Sleep state
+		wk_temp = (Get_TemperatureShowFlag())
+					? TemperatureShow_Change(1, device_info.t_standby)
+					: device_info.t_standby;
+
+		if (device_info.t_standby > device_info.t_work)
+		{	// Sleep temperature is higher than working temperature
+			wk_temp = (Get_TemperatureShowFlag())
+						? TemperatureShow_Change(1,device_info.t_work)
+						: device_info.t_work;// No longer keep the temperature low
+		}
+		if (HEATING_TIMER == 0)
+		{
+			CTRL_Context.gTemp_data	= Get_Temp(wk_temp);
+			heat_timecnt  = Heating_Time(CTRL_Context.gTemp_data, wk_temp);  // Calculate the heating time
+			Set_HeatingTime(heat_timecnt);
+			HEATING_TIMER = 30;
+		}
+
+		if (Read_Vb(1) >= 4)
+		{
+			Clear_HeatingTime();
+			Set_LongKeyFlag(0);
+			Set_CtrlStatus(IDLE);
+			G6_TIMER = device_info.idle_time;
+			CTRL_Context.gPre_status = WAIT;
+			CTRL_Context.gIs_restartkey = 1;
+			KD_TIMER = 50; // 2 seconds
+		}
+
+		if (G6_TIMER == 0)
+		{	// Go to standby
+			Clear_HeatingTime();
+			Set_LongKeyFlag(0);
+			CTRL_Context.gIs_restartkey = 1;
+			KD_TIMER = 200; //  4 seconds
+			CTRL_Context.gPre_status = WAIT;
+			Set_CtrlStatus(IDLE);
+		}
+
+		if (Get_MmaShift() == 1 || Get_gKey() != 0)
+		{
+			UI_TIMER	  = 0;
+			G6_TIMER	  = 0;
+			init_waitingtime = 0;
+			Set_CtrlStatus(TEMP_CTR);
+		}
+
+		if (Get_AlarmType() > NORMAL_TEMP)
+		{	// caveat
+			if (Get_UpdataFlag() == 1) Set_UpdataFlag(0);
+			Set_CtrlStatus(ALARM);
+		}
+		break;
+	case TEMP_SET:	// Temperature setting state
+		if (EFFECTIVE_KEY_TIMER == 0)
+		{	// Time is exhausted
+			Set_gCalib_flag(1);
+			gTime[5]=1;
+			if (CTRL_Context.TEMP_SET_Pos == 1)
+			{	// Save the modified parameters
+				Disk_BuffInit();	// Disk data is initialized
+				Config_Analysis();	// Start virtual u disk
+			}
+			Set_gCalib_flag(0);
+			temo_set_pos=1;
+			if (CTRL_Context.TEMP_SET_Pos == 0)
+			{
+				Set_LongKeyFlag(0);	// Set the long press flag = 0
+				Set_gKey(NO_KEY);
+				Delay_uS(3000000);
+				Set_CtrlStatus(TEMP_CTR);	// Return to temperature control
+				TEMPSHOW_TIMER = 0;			// Timer initialization
+			}
+			else 
+			{
+				Clear_HeatingTime();
+				Set_LongKeyFlag(0);		// Set the long press flag = 0
+				Set_CtrlStatus(IDLE);	// Return to standby
+				CTRL_Context.gPre_status = TEMP_CTR;
+				CTRL_Context.gIs_restartkey = 1;		// Restart flag
+				KD_TIMER = 100; 
+			}
+		}
+		if (Get_gKey() == (KEY_CN | KEY_V3) && CTRL_Context.TEMP_SET_Pos == 0)
+		{	// While long press AB key to exit the temperature setting state
+	//		gCalib_flag = 1;
+	//		Disk_BuffInit();
+	//		Config_Analysis();	// Start virtual u disk
+	//		gCalib_flag = 0;
+	//		Set_CtrlStatus(VOLT);
+			EFFECTIVE_KEY_TIMER = 0;
+			Set_gKey(NO_KEY);
+			Set_LongKeyFlag(0);	// Set the long press flag = 0
+		}
+		break;
+	case VOLT:
+		if (KD_TIMER > 0)
+		{
+			Set_gKey(NO_KEY);
+			break;
+		}
+		if (Get_gKey() != NO_KEY)
+		{
+			EFFECTIVE_KEY_TIMER = 1000;// Button to refresh the time
+			Set_CtrlStatus(TEMP_CTR);
+		}
+		break;
+//	case THERMOMETER://ÎÂ¶È¼ÆÄ£Ê½
+//		if (KD_TIMER > 0) {
+//			Set_gKey(NO_KEY);
+//			break;
+//		}
+//		switch(Get_gKey()) {
+//		case KEY_CN | KEY_V1:
+//		case KEY_CN | KEY_V2:
+//		  back_prestatus = 1;
+//			break;
+//		case KEY_CN | KEY_V3:
+//			Zero_Calibration();//Ð£×¼Áãµã
+//			if (Get_CalFlag() == 1) {
+//				Disk_BuffInit();
+//				Config_Analysis();		 // Æô¶¯ÐéÄâUÅÌ
+//			}
+//			KD_TIMER = 200; //20150717 ÐÞ¸Ä
+//			break;
+//		default:
+//			break;
+//		}
+//		if (back_prestatus == 1) {
+//			back_prestatus = 0;
+//			Clear_HeatingTime();
+//			Set_CtrlStatus(IDLE);
+//			gPre_status = THERMOMETER;
+//			gIs_restartkey = 1;
+//			Set_LongKeyFlag(0);
+//			KD_TIMER = 50; //
+//		}
+//		break;
+	case ALARM:	// Warning mode
+		switch(Get_AlarmType())
+		{
+		case HIGH_TEMP:
+		case SEN_ERR:
+			wk_temp = (Get_TemperatureShowFlag())
+						? TemperatureShow_Change(1,device_info.t_standby)
+						: device_info.t_standby;
+			CTRL_Context.gTemp_data  = Get_Temp(wk_temp);
+			if (Get_AlarmType() == NORMAL_TEMP)
+			{
+				Set_CtrlStatus(TEMP_CTR);
+				Set_UpdataFlag(0);
+			}
+			break;
+		case HIGH_VOLTAGE:
+		case LOW_VOLTAGE:
+			if (Read_Vb(1) >= 1 && Read_Vb(1) <= 3)
+			{
+				Clear_HeatingTime();
+				Set_LongKeyFlag(0);
+				CTRL_Context.gIs_restartkey = 1;
+				UI_TIMER = 2;
+				CTRL_Context.gPre_status = THERMOMETER;
+				Set_CtrlStatus(IDLE);
+			}
+			break;
+		}
+		if (Get_HeatingTime() != 0)
+		{	// Immediately stop heating
+			Clear_HeatingTime();
+			HEAT_OFF();
+		}
+		break;
+	default:
+		break;
+	}
 }
-
-/******************************** END OF FILE *********************************/

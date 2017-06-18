@@ -1,12 +1,3 @@
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. **********************
-File Name :      CTRL.h
-Version :        S100 APP Ver 2.11   
-Description:
-Author :         Celery
-Data:            2015/07/07
-History:
-2015/07/07   Í³Ò»ÃüÃû£»
-*******************************************************************************/
 #ifndef _HARDWARE_H
 #define _HARDWARE_H
 
@@ -16,37 +7,53 @@ History:
 #define SI_THRESHOLD   60
 
 typedef enum VOL_CLASS {
-    H_ALARM = 0,
-    VOL_24,
-    VOL_19,
-    VOL_12,
-    VOL_5,
-    L_ALARM,
+	H_ALARM = 0,
+	VOL_24,
+	VOL_19,
+	VOL_12,
+	VOL_5,
+	L_ALARM,
 } VOL_CLASS;
 
-extern s32 gZerop_ad;
-extern u8 gCalib_flag;
-extern u32 gTurn_offv;
+typedef struct {
+	int32_t  gZerop_ad;
+	uint32_t gTurn_offv;
+	uint32_t gKey_in;
+	uint8_t gAlarm_type;
+	uint8_t gCalib_flag;
+	uint8_t gLongkey_flag;
+} Hard_Context_t;
 
-u32 Get_gKey(void);
-void Set_gKey(u32 key);
-void Set_LongKeyFlag(u32 flag);
+extern Hard_Context_t Hard_Context;
+
+uint8_t Get_gCalib_flag(void);
+void Set_gCalib_flag(uint8_t flag);
+
+uint32_t Get_gTurn_offv(void);
+void Set_gTurn_offv(uint32_t value);
+
+int32_t Get_gZerop_ad(void);
+void Set_gZerop_ad(int32_t value);
+
+uint32_t Get_gKey(void);
+void Set_gKey(uint32_t key);
+
+void Set_LongKeyFlag(uint32_t flag);
 void Zero_Calibration(void);
-int Read_Vb(u8 flag);
+int Read_Vb(uint8_t flag);
 void Scan_Key(void);
-u32 Get_SlAvg(u32 avg_data);
+uint32_t Get_SlAvg(uint32_t avg_data);
 int Get_TempSlAvg(int avg_data);
-u32 Get_AvgAd(void);
+uint32_t Get_AvgAd(void);
 int Get_SensorTmp(void);
-u16 Get_ThermometerTemp(void);
-s16 Get_Temp(s16 wk_temp);
-u32 Clear_Watchdog(void);
-u32 Start_Watchdog(u32 ms);
-u8 Get_AlarmType(void);
-void Set_AlarmType(u8 type);
-u32 Get_CalFlag(void);
+uint16_t Get_ThermometerTemp(void);
+int16_t Get_Temp(s16 wk_temp);
+uint32_t Clear_Watchdog(void);
+uint32_t Start_Watchdog(uint32_t ms);
+uint8_t Get_AlarmType(void);
+void Set_AlarmType(uint8_t type);
+uint32_t Get_CalFlag(void);
 
 void Key_Read( void );
 
 #endif
-/******************************** END OF FILE *********************************/

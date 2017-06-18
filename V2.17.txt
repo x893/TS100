@@ -1,0 +1,36 @@
+v2.15-2.17 更新内容整合(20170512)
+1、在控温模式下的设置模式改为以前版本的只能调节温度，关机后参数不保存；
+2、在待机模式单击B进入可改变参数的设置模式(前版本为温度计模式)；
+3、进入设置模式后单击A/B可控制左右移动选择需要修改项，长按A/B键进入该选择项的修改(在同屏显示温度电压项长按A/B经行校准)，同时长按A，B键返回待机模式；
+4、增加恢复出厂设备功能还原所有参数为默认值，此功能在设置模式Factory Reset选项时长按任意键恢复出厂设置。
+5、优化了控温模式下温度设置界面，添加温度设置时双击A,B键进入电压显示界面，进入后长按A,B即可返回控温模式；
+6、扩大了保护电压的范围和精度，可以精确到0.1V；
+7、从待机模式进入设置模式后第一项固定为温度调校和电压显示；
+8、在设置模式长按任意键进入选择项的参数调整时添加双键长按退出功能；
+9、添加当TempStp步长设置为1时，温控模式下温度设置长按有快速修改效果。
+10、对切换为左手模式进行优化(A/B键也会对应左右手模式调整)；
+
+V2.15-2.17 update content integration (20170512)
+
+1, in the temperature control mode settings mode changed to the previous version, can only adjust the temperature, after shutdown parameters are not saved;
+
+2. In standby mode, click B to enter the settings mode with changing parameters (previous version is thermometer mode);
+
+3, enter the settings mode, click A/B to control the move around, select the need to modify the item, long press the A/B key to enter the selection of changes (displayed at the same screen temperature
+The voltage term is calibrated by A/B, and the A and B keys are returned to standby mode at the same time;
+
+4, increase the restore factory device function, restore all parameters as default values, this function in the set mode Factory Reset option, long press any key to restore
+Factory settings.
+
+5, optimize the temperature control mode temperature setting interface, add temperature settings, double-click A, B key into the voltage display interface, enter after long press A, B can return
+Temperature control mode;
+
+6, expand the scope and accuracy of protection voltage, can be accurate to 0.1V;
+
+7, after the standby mode enters the set mode, the first item is fixed to the temperature adjustment and voltage display;
+
+8, in setting mode long press any key to enter the selection of parameter adjustment, add double bond, long press the exit function;
+
+9, add, when the TempStp step size is set to 1, the temperature control mode temperature setting is long, according to have the fast modification effect.
+
+10, to switch to left hand mode optimization (A/B key will also correspond to left and right hand mode adjustment);

@@ -1,13 +1,3 @@
-
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. ********************                       
-File Name :      EXT_Flash.c
-Version :        S100 APP Ver 2.11   
-Description:
-Author :         bure 
-Data:           
-History:
-*******************************************************************************/
-
 #include <string.h>
 #include <stdio.h>
 #include "Ext_Flash.h"
@@ -195,5 +185,3 @@ void MAL_GetStatus (void)
         Mass_Memory_Size = 512*4096 ;   //FLASH_SIZE; 0x200000;
     }
 }
-
-/*********************************  END OF FILE  ******************************/

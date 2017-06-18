@@ -1,7 +1,3 @@
-/******************** (C) COPYRIGHT 2015 e-Design Co., Ltd. ********************
- File Name : USB_istr.h  
- Version   : STM32 USB Disk Ver 3.4       Author : MCD Application Team & bure
-*******************************************************************************/
 #ifndef __USB_ISTR_H
 #define __USB_ISTR_H
 
@@ -61,4 +57,3 @@ void EP6_OUT_Callback(void);
 void EP7_OUT_Callback(void);
 
 #endif
-/*********************************  END OF FILE  ******************************/

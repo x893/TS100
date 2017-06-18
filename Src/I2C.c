@@ -1,218 +1,211 @@
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. **********************
-File Name :      I2C.c
-Version :        S100 APP Ver 2.11   
-Description:
-Author :         Celery
-Data:            2015/07/20
-History:
-2015/07/07   统一命名；
-2015/07/21   I2C_DELAYTIME = 2;
-*******************************************************************************/
-
 #include "stm32f10x.h"
 #include "I2C.h"
 #include "Bios.h"
 #include "oled.h"
 #include "S100V0_1.h"
 
-// --------- 仿真I2C接口相关定义-------- //
-#define SDA          GPIO_Pin_7
-#define	SCL		       GPIO_Pin_6
+#define HIGH		1
+#define LOW			0
 
-#define HIGH         1
-#define LOW          0
+#define SDA_VAL		(GPIOB->IDR & SDA_PIN)
+#define SCL_VAL		(GPIOB->IDR & SCL_PIN)
 
-#define SDA_VAL      GPIO_ReadInputDataBit(GPIOB, SDA)
-#define SCL_VAL      GPIO_ReadInputDataBit(GPIOB, SCL)
+#define I2C_MORE		1
+#define I2C_LAST		0
+#define I2C_TIMEOUT		255
 
-#define I2C_MORE     1
-#define I2C_LAST     0
-#define I2C_TIMEOUT  255
+#define FAILURE			0
+#define SUCCEED			1
+#define I2C_DELAYTIME	2
 
-#define FAILURE      0
-#define SUCCEED      1
-#define I2C_DELAYTIME 2
-
-static void Sim_I2C_Set(u8 pin, u8 status);
 static void Sim_I2C_Stop(void);
 static void Sim_I2C_Start(void);
-static u8   Sim_I2C_RD_Byte(u8 more);
-static u8   Sim_I2C_WR_Byte(u8 data);
+static uint8_t Sim_I2C_RD_Byte(uint8_t more);
+static uint8_t Sim_I2C_WR_Byte(uint8_t data);
 
 /*******************************************************************************
-函数名: Delay_uS
-函数作用: 软件延时
-输入参数:us 
-返回参数:NULL
+@@name  Delay_uS
+@@brief  软件延时
+@@param us 
+@@return NULL
 *******************************************************************************/
-void Delay_uS(u32 us)
+void Delay_uS(uint32_t us)
 {
-    while(us) us--;
-}
-/*******************************************************************************
-函数名: I2C_Configuration
-函数作用: 配置I2C
-输入参数:NULL
-返回参数:NULL
-*******************************************************************************/
-void I2C_Configuration(void)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-
-    GPIO_Init_OLED();//初始化OLED的GPIO端口
-    /* PB6,7 SCL and SDA */
-    GPIO_InitStructure.GPIO_Pin   =  GPIO_Pin_6 | GPIO_Pin_7;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_OD;//开漏输出
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+	volatile uint32_t cnt = us;
+	while (cnt != 0)
+		cnt--;
 }
 
 /*******************************************************************************
-函数名: Sim_I2C_Set
-函数作用: 配置I2C
-输入参数:pin:GPIO_Pin_      status:电平状态
-返回参数:NULL
+@@name  Sim_I2C_Set
+@@brief  配置I2C
+@@param pin:GPIO_Pin_	  status:电平状态
+@@return NULL
 *******************************************************************************/
-void Sim_I2C_Set(u8 pin, u8 status)
-{
-    if(status == HIGH) GPIO_SetBits  (GPIOB, pin);//设置
-    if(status == LOW)  GPIO_ResetBits(GPIOB, pin);//重置
-}
+#define SDA_High()			GPIOB->BSRR = SDA_PIN
+#define SDA_Low()			GPIOB->BRR  = SDA_PIN
+#define SCL_High()			GPIOB->BSRR = SCL_PIN
+#define SCL_Low()			GPIOB->BRR  = SCL_PIN
+
 /*******************************************************************************
-函数名: Sim_I2C_Start
-函数作用: 开始
-输入参数:NULL
-返回参数:NULL
+@@name  Sim_I2C_Start
+@@brief  开始
+@@param NULL
+@@return NULL
 *******************************************************************************/
 void Sim_I2C_Start(void)
 {
-    GPIO_InitTypeDef  GPIO_InitStructure;
+	SCL_Low();
+	SDA_High();
+	SCL_High();
+	Delay_uS(I2C_DELAYTIME);
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE); // I2C_PIN_EN();
-    GPIO_InitStructure.GPIO_Pin   = SCL | SDA;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init       (GPIOB, &GPIO_InitStructure);
-
-    Sim_I2C_Set(SCL, LOW);  // SCL low
-    Sim_I2C_Set(SDA, HIGH); // SDA float, set as output high
-    Sim_I2C_Set(SCL, HIGH); // SCL high
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SDA, LOW);  // SDA high->low while sclk high, S state occur...
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SCL, LOW);  // SCL low
+	SDA_Low();
+	Delay_uS(I2C_DELAYTIME);
+	
+	SCL_Low();
 }
+
 /*******************************************************************************
-函数名: Sim_I2C_Stop
-函数作用: 停止
-输入参数:NULL
-返回参数:NULL
+@@name  Sim_I2C_Stop
+@@brief  停止
+@@param NULL
+@@return NULL
 *******************************************************************************/
 void Sim_I2C_Stop(void)
 {
-    Sim_I2C_Set(SCL, LOW);  // SCL low
-    Sim_I2C_Set(SDA, LOW);  // SDA low
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SCL, HIGH); // SCL high
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SDA, HIGH); // SDA low->high while sclk high, P state occur
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SCL, LOW);  //  SCL low
-    Delay_uS(I2C_DELAYTIME);
-}
-/*******************************************************************************
-函数名: Sim_I2C_WR_Byte
-函数作用:向I2C写八位数据
-输入参数:data要写入的数据
-返回参数:SUCCEED:成功         FAILURE:失败
-*******************************************************************************/
-u8 Sim_I2C_WR_Byte(u8 data)
-{
-    u8 i = 8;
+	SCL_Low();
+	SDA_Low();
+	Delay_uS(I2C_DELAYTIME);
 
-    while(i--) { 			        //send out a bit by sda line.
-        Sim_I2C_Set(SCL, LOW);                  // sclk low    
-        if(data & 0x80) Sim_I2C_Set(SDA, HIGH); // send bit is 1
-        else            Sim_I2C_Set(SDA, LOW);  // send bit is 0
-        Delay_uS(I2C_DELAYTIME);
-        Sim_I2C_Set(SCL, HIGH);                 // SCL high
-        Delay_uS(I2C_DELAYTIME);
-        data <<=1;			        // left shift 1 bit, MSB send first.
-    }
-    Sim_I2C_Set(SCL, LOW);                      // SCL low
-    Sim_I2C_Set(SDA, HIGH);                     // SDA set as input
-    for(i=I2C_TIMEOUT; i!=0; i--) {		// wait for sda low	to receive ack
-        Delay_uS(I2C_DELAYTIME);
-        if (!SDA_VAL) {
-            Sim_I2C_Set(SCL, HIGH);             // SCL high
-            Delay_uS(I2C_DELAYTIME);
-            Sim_I2C_Set(SCL, LOW);              // SCL_LOW();
-            Delay_uS(I2C_DELAYTIME);
-            return SUCCEED;
-        }
-    }
-    return FAILURE;
-}
-/*******************************************************************************
-函数名: Sim_I2C_RD_Byte
-函数作用:向I2C读八位数据
-输入参数:more
-返回参数:读出的八位数据
-*******************************************************************************/
-u8 Sim_I2C_RD_Byte(u8 more)
-{
-    u8 i = 8, byte = 0;
+	SCL_High();
+	Delay_uS(I2C_DELAYTIME);
 
-    Sim_I2C_Set(SDA, HIGH);             // SDA set as input
-    while(i--) {
-        Sim_I2C_Set(SCL, LOW);            // SCL low
-        Delay_uS(I2C_DELAYTIME);
-        Sim_I2C_Set(SCL, HIGH);           // SCL high
-        Delay_uS(I2C_DELAYTIME);
-        byte <<=1;				          //recv a bit
-        if (SDA_VAL) byte |= 0x01;
-    }
-    Sim_I2C_Set(SCL, LOW);
-    if(!more)	Sim_I2C_Set(SDA, HIGH);   //last byte, send nack.
-    else		Sim_I2C_Set(SDA, LOW);    //send ack
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SCL, HIGH);             // SCL_HIGH();
-    Delay_uS(I2C_DELAYTIME);
-    Sim_I2C_Set(SCL, LOW);
-    return byte;
-}
-/*******************************************************************************
-函数名: I2C_PageWrite
-函数作用:向 地址 deviceaddr 写入numbyte个字节的数据，写入的内容在pbuf
-输入参数:pbuf 写入的内容，numbyte 为写入的字节数，deviceaddr为写入的地址
-返回参数:NULL
-*******************************************************************************/
-void I2C_PageWrite(u8* pbuf, u8 numbyte,u8 deviceaddr )
-{
-    Sim_I2C_Start();
-    Sim_I2C_WR_Byte(deviceaddr<<1);
-    while(numbyte--) Sim_I2C_WR_Byte(*pbuf++);
-    Sim_I2C_Stop();
-}
-/*******************************************************************************
-函数名: I2C_PageRead
-函数作用:向I2C读八位数据
-输入参数: pbuf 读出来的存放地址 numbyte为读出来的字节数 
-          deviceaddr设备地址 readaddr读取的内容地址
-返回参数:读出的八位数据
-*******************************************************************************/
-void I2C_PageRead(u8* pbuf,  u8 numbyte,u8 deviceaddr, u8 readaddr)
-{
-    Sim_I2C_Start();
-    Sim_I2C_WR_Byte(deviceaddr<<1);
-    Sim_I2C_WR_Byte(readaddr);
-    Sim_I2C_Start();
-    Sim_I2C_WR_Byte((deviceaddr<<1)|1);
+	SDA_High();
+	Delay_uS(I2C_DELAYTIME);
 
-    while(numbyte--) {
-        if(numbyte) *pbuf++ = Sim_I2C_RD_Byte(I2C_MORE);
-        else	  	  *pbuf++ = Sim_I2C_RD_Byte(I2C_LAST);
-    }
-    Sim_I2C_Stop();
+	SCL_Low();
+	Delay_uS(I2C_DELAYTIME);
 }
-/******************************** END OF FILE *********************************/
+
+/*******************************************************************************
+@@name  Sim_I2C_WR_Byte
+@@brief 向I2C写八位数据
+@@param data要写入的数据
+@@return SUCCEED:成功		 FAILURE:失败
+*******************************************************************************/
+uint8_t Sim_I2C_WR_Byte(u8 data)
+{
+	int i = 8;
+	while (i != 0)
+	{
+		i--;
+		//send out a bit by sda line.
+		SCL_Low();					// sclk low	
+		if(data & 0x80) SDA_High();	// send bit is 1
+		else			SDA_Low();	// send bit is 0
+		Delay_uS(I2C_DELAYTIME);
+
+		SCL_High();			// SCL high
+		Delay_uS(I2C_DELAYTIME);
+
+		data <<=1;					// left shift 1 bit, MSB send first.
+	}
+
+	SCL_Low();
+	SDA_High();
+
+	for (i = I2C_TIMEOUT; i != 0; i--)
+	{	// wait for sda low	to receive ack
+		Delay_uS(I2C_DELAYTIME);
+		if (!SDA_VAL)
+		{
+			SCL_High();
+			Delay_uS(I2C_DELAYTIME);
+
+			SCL_Low();
+			Delay_uS(I2C_DELAYTIME);
+
+			return SUCCEED;
+		}
+	}
+	return FAILURE;
+}
+
+/*******************************************************************************
+@@name  Sim_I2C_RD_Byte
+@@brief 向I2C读八位数据
+@@param more
+@@return 读出的八位数据
+*******************************************************************************/
+uint8_t Sim_I2C_RD_Byte(uint8_t more)
+{
+	int i = 8, byte = 0;
+
+	SDA_High();				// SDA set as input
+	while (i != 0)
+	{
+		--i;
+		SCL_Low();			// SCL low
+		Delay_uS(I2C_DELAYTIME);
+
+		SCL_High();			// SCL high
+		Delay_uS(I2C_DELAYTIME);
+
+		byte <<= 1;					//recv a bit
+		if (SDA_VAL) byte |= 0x01;
+	}
+
+	SCL_Low();
+	if (!more)	SDA_High();	// last byte, send nack.
+	else		SDA_Low();	// send ack
+	Delay_uS(I2C_DELAYTIME);
+
+	SCL_High();				// SCL_HIGH();
+	Delay_uS(I2C_DELAYTIME);
+
+	SCL_Low();
+	return byte;
+}
+
+/*******************************************************************************
+@@name  I2C_PageWrite
+@@brief 向 地址 deviceaddr 写入numbyte个字节的数据，写入的内容在pbuf
+@@param pbuf 写入的内容，numbyte 为写入的字节数，deviceaddr为写入的地址
+@@return NULL
+*******************************************************************************/
+void I2C_PageWrite(uint8_t * pbuf, uint16_t numbyte, uint8_t deviceaddr )
+{
+	Sim_I2C_Start();
+	Sim_I2C_WR_Byte(deviceaddr << 1);
+
+	while (numbyte !=  0)
+	{
+		--numbyte;
+		Sim_I2C_WR_Byte(*pbuf++);
+	}
+	Sim_I2C_Stop();
+}
+/*******************************************************************************
+@@name  I2C_PageRead
+@@brief 向I2C读八位数据
+@@param  pbuf 读出来的存放地址 numbyte为读出来的字节数 
+		  deviceaddr设备地址 readaddr读取的内容地址
+@@return 读出的八位数据
+*******************************************************************************/
+void I2C_PageRead(uint8_t* pbuf,  uint16_t numbyte, uint8_t deviceaddr, uint8_t readaddr)
+{
+	Sim_I2C_Start();
+	Sim_I2C_WR_Byte(deviceaddr << 1);
+	Sim_I2C_WR_Byte(readaddr);
+	Sim_I2C_Start();
+	Sim_I2C_WR_Byte((deviceaddr << 1) | 1);
+
+	while (numbyte != 0)
+	{
+		--numbyte;
+		if (numbyte == 0)	*pbuf++ = Sim_I2C_RD_Byte(I2C_LAST);
+		else				*pbuf++ = Sim_I2C_RD_Byte(I2C_MORE);
+	}
+	Sim_I2C_Stop();
+}

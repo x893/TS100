@@ -1,12 +1,3 @@
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. ********************                       
-File Name :      2FAT12.c
-Version :        S100 APP Ver 2.11   
-Description:
-Author :         bure & Celery
-Data:            2015/08/03
-History:
-2015/08/03   Í³Ò»ÃüÃû£»
-*******************************************************************************/
 #include <string.h>
 #include "FAT12.h"
 #include "BIOS.h"
@@ -234,4 +225,3 @@ u8 CloseFile(u8* pBuffer, u32 Lenght, u16* pCluster, u32* pDirAddr)
     }
     return OK;
 }
-/******************************** END OF FILE *********************************/

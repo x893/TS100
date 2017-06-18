@@ -30,6 +30,8 @@
 #ifndef __USB_CORE_H
 #define __USB_CORE_H
 
+#include <stdint.h>
+
 /* Includes ------------------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 typedef enum _CONTROL_STATE
@@ -90,61 +92,59 @@ typedef struct _ENDPOINT_INFO
    Usb_rLength is the data remain to be received,
    Usb_rPointer is the Offset of data buffer
   */
-  uint16_t  Usb_wLength;
-  uint16_t  Usb_wOffset;
-  uint16_t  PacketSize;
-  uint8_t   *(*CopyData)(uint16_t Length);
-}ENDPOINT_INFO;
+	uint16_t  Usb_wLength;
+	uint16_t  Usb_wOffset;
+	uint16_t  PacketSize;
+	uint8_t   *(*CopyData)(uint16_t Length);
+} ENDPOINT_INFO;
 
 /*-*-*-*-*-*-*-*-*-*-*-* Definitions for device level -*-*-*-*-*-*-*-*-*-*-*-*/
 
 typedef struct _DEVICE
 {
-  uint8_t Total_Endpoint;     /* Number of endpoints that are used */
-  uint8_t Total_Configuration;/* Number of configuration available */
-}
-DEVICE;
+	uint8_t Total_Endpoint;     /* Number of endpoints that are used */
+	uint8_t Total_Configuration;/* Number of configuration available */
+} DEVICE;
 
 typedef union
 {
-  uint16_t w;
-  struct BW
-  {
-    uint8_t bb1;
-    uint8_t bb0;
-  }
-  bw;
+	uint16_t w;
+	struct BW
+	{
+		uint8_t bb1;
+		uint8_t bb0;
+	}
+	bw;
 } uint16_t_uint8_t;
 
 typedef struct _DEVICE_INFO
 {
-  uint8_t USBbmRequestType;       /* bmRequestType */
-  uint8_t USBbRequest;            /* bRequest */
-  uint16_t_uint8_t USBwValues;         /* wValue */
-  uint16_t_uint8_t USBwIndexs;         /* wIndex */
-  uint16_t_uint8_t USBwLengths;        /* wLength */
+	uint8_t USBbmRequestType;       /* bmRequestType */
+	uint8_t USBbRequest;            /* bRequest */
+	uint16_t_uint8_t USBwValues;         /* wValue */
+	uint16_t_uint8_t USBwIndexs;         /* wIndex */
+	uint16_t_uint8_t USBwLengths;        /* wLength */
 
-  uint8_t ControlState;           /* of type CONTROL_STATE */
-  uint8_t Current_Feature;
-  uint8_t Current_Configuration;   /* Selected configuration */
-  uint8_t Current_Interface;       /* Selected interface of current configuration */
-  uint8_t Current_AlternateSetting;/* Selected Alternate Setting of current
-                                     interface*/
-
-  ENDPOINT_INFO Ctrl_Info;
-}DEVICE_INFO;
+	uint8_t ControlState;           /* of type CONTROL_STATE */
+	uint8_t Current_Feature;
+	uint8_t Current_Configuration;   /* Selected configuration */
+	uint8_t Current_Interface;       /* Selected interface of current configuration */
+	uint8_t Current_AlternateSetting;/* Selected Alternate Setting of current
+										interface*/
+	ENDPOINT_INFO Ctrl_Info;
+} DEVICE_INFO;
 
 typedef struct _DEVICE_PROP
 {
-  void (*Init)(void);        /* Initialize the device */
-  void (*Reset)(void);       /* Reset routine of this device */
+	void (*Init)(void);        /* Initialize the device */
+	void (*Reset)(void);       /* Reset routine of this device */
 
-  /* Device dependent process after the status stage */
-  void (*Process_Status_IN)(void);
-  void (*Process_Status_OUT)(void);
+	/* Device dependent process after the status stage */
+	void (*Process_Status_IN)(void);
+	void (*Process_Status_OUT)(void);
 
-  /* Procedure of process on setup stage of a class specified request with data stage */
-  /* All class specified requests with data stage are processed in Class_Data_Setup
+	/* Procedure of process on setup stage of a class specified request with data stage */
+	/* All class specified requests with data stage are processed in Class_Data_Setup
    Class_Data_Setup()
     responses to check all special requests and fills ENDPOINT_INFO
     according to the request
@@ -159,7 +159,7 @@ typedef struct _DEVICE_PROP
     Since GET_CONFIGURATION & GET_INTERFACE are highly related to
     the individual classes, they will be checked and processed here.
   */
-  RESULT (*Class_Data_Setup)(uint8_t RequestNo);
+	RESULT (*Class_Data_Setup)(uint8_t RequestNo);
 
   /* Procedure of process on setup stage of a class specified request without data stage */
   /* All class specified requests without data stage are processed in Class_NoData_Setup
@@ -170,7 +170,7 @@ typedef struct _DEVICE_PROP
     Since SET_CONFIGURATION & SET_INTERFACE are highly related to
     the individual classes, they will be checked and processed here.
   */
-  RESULT (*Class_NoData_Setup)(uint8_t RequestNo);
+	RESULT (*Class_NoData_Setup)(uint8_t RequestNo);
 
   /*Class_Get_Interface_Setting
    This function is used by the file usb_core.c to test if the selected Interface
@@ -180,33 +180,32 @@ typedef struct _DEVICE_PROP
    and Alternate Setting are supported by the application or "UNSUPPORT" if they
    are not supported. */
 
-  RESULT  (*Class_Get_Interface_Setting)(uint8_t Interface, uint8_t AlternateSetting);
+	RESULT  (*Class_Get_Interface_Setting)(uint8_t Interface, uint8_t AlternateSetting);
 
-  uint8_t* (*GetDeviceDescriptor)(uint16_t Length);
-  uint8_t* (*GetConfigDescriptor)(uint16_t Length);
-  uint8_t* (*GetStringDescriptor)(uint16_t Length);
+	uint8_t* (*GetDeviceDescriptor)(uint16_t Length);
+	uint8_t* (*GetConfigDescriptor)(uint16_t Length);
+	uint8_t* (*GetStringDescriptor)(uint16_t Length);
 
-  /* This field is not used in current library version. It is kept only for
-   compatibility with previous versions */
-  void* RxEP_buffer;
+	/* This field is not used in current library version. It is kept only for
+	compatibility with previous versions */
+	void* RxEP_buffer;
 
-  uint8_t MaxPacketSize;
+	uint8_t MaxPacketSize;
 
-}DEVICE_PROP;
+} DEVICE_PROP;
 
 typedef struct _USER_STANDARD_REQUESTS
 {
-  void (*User_GetConfiguration)(void);       /* Get Configuration */
-  void (*User_SetConfiguration)(void);       /* Set Configuration */
-  void (*User_GetInterface)(void);           /* Get Interface */
-  void (*User_SetInterface)(void);           /* Set Interface */
-  void (*User_GetStatus)(void);              /* Get Status */
-  void (*User_ClearFeature)(void);           /* Clear Feature */
-  void (*User_SetEndPointFeature)(void);     /* Set Endpoint Feature */
-  void (*User_SetDeviceFeature)(void);       /* Set Device Feature */
-  void (*User_SetDeviceAddress)(void);       /* Set Device Address */
-}
-USER_STANDARD_REQUESTS;
+	void (*User_GetConfiguration)(void);       /* Get Configuration */
+	void (*User_SetConfiguration)(void);       /* Set Configuration */
+	void (*User_GetInterface)(void);           /* Get Interface */
+	void (*User_SetInterface)(void);           /* Set Interface */
+	void (*User_GetStatus)(void);              /* Get Status */
+	void (*User_ClearFeature)(void);           /* Clear Feature */
+	void (*User_SetEndPointFeature)(void);     /* Set Endpoint Feature */
+	void (*User_SetDeviceFeature)(void);       /* Set Device Feature */
+	void (*User_SetDeviceAddress)(void);       /* Set Device Address */
+} USER_STANDARD_REQUESTS;
 
 /* Exported constants --------------------------------------------------------*/
 #define Type_Recipient (pInformation->USBbmRequestType & (REQUEST_TYPE | RECIPIENT))

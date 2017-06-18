@@ -1,12 +1,3 @@
-/********************* (C) COPYRIGHT 2015 e-Design Co.,Ltd. ********************                       
-File Name :      EXT_Flash.h
-Version :        S100 APP Ver 2.11   
-Description:
-Author :         bure 
-Data:           
-History:
-*******************************************************************************/
-
 #ifndef __EXT_FLASH_H
 #define __EXT_FLASH_H
 //#include "stm32f10x_lib.h"
@@ -49,5 +40,3 @@ void ExtFlash_WriteEnable(void);
 void ExtFlash_WaitForWriteEnd(void);
 void ExtFlash_PageProg(u8* pBuffer, u32 WriteAddr,u8 CMD);
 #endif
-
-/*********************************  END OF FILE  ******************************/

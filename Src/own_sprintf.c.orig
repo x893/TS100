@@ -82,4 +82,3 @@ char * own_sprintf(char* dest,const char*cntrl_string, ...)
 	dest[cnt_printed_chars] = '\0';   
 	return dest;	
 }
-/******************************** END OF FILE *********************************/

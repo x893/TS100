@@ -1,3 +1,5 @@
-Release/
 settings/
+build/
 *.sfr
+*.uvopt
+*.uvgui.*

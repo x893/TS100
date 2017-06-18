@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file    stm32f10x_conf.h
+  * @file	stm32f10x_conf.h
   * @author  MCD Application Team
   * @version V4.0.0
-  * @date    21-January-2013
+  * @date	21-January-2013
   * @brief   Library configuration file.
   ******************************************************************************
   * @attention
@@ -14,7 +14,7 @@
   * You may not use this file except in compliance with the License.
   * You may obtain a copy of the License at:
   *
-  *        http://www.st.com/software_license_agreement_liberty_v2
+  *		http://www.st.com/software_license_agreement_liberty_v2
   *
   * Unless required by applicable law or agreed to in writing, software 
   * distributed under the License is distributed on an "AS IS" BASIS, 
@@ -59,19 +59,19 @@
 /* Exported constants --------------------------------------------------------*/
 /* Uncomment the line below to expanse the "assert_param" macro in the 
    Standard Peripheral Library drivers code */
-/* #define USE_FULL_ASSERT    1 */
+/* #define USE_FULL_ASSERT	1 */
 
 /* Exported macro ------------------------------------------------------------*/
 #ifdef  USE_FULL_ASSERT
 
 /*******************************************************************************
-* Macro Name     : assert_param
-* Description    : The assert_param macro is used for function's parameters check.
-* Input          : - expr: If expr is false, it calls assert_failed function
-*                    which reports the name of the source file and the source
-*                    line number of the call that failed. 
-*                    If expr is true, it returns no value.
-* Return         : None
+* Macro Name	 : assert_param
+* Description	: The assert_param macro is used for function's parameters check.
+* Input		  : - expr: If expr is false, it calls assert_failed function
+*					which reports the name of the source file and the source
+*					line number of the call that failed. 
+*					If expr is true, it returns no value.
+* Return		 : None
 *******************************************************************************/ 
   #define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
 /* Exported functions ------------------------------------------------------- */

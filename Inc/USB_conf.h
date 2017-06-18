@@ -1,9 +1,9 @@
 /******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
-* File Name          : usb_conf.h
-* Author             : MCD Application Team
-* Version            : V2.2.1
-* Date               : 09/22/2008
-* Description        : Mass Storage Demo configuration header
+* File Name		  : usb_conf.h
+* Author			 : MCD Application Team
+* Version			: V2.2.1
+* Date			   : 09/22/2008
+* Description		: Mass Storage Demo configuration header
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
 * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
@@ -20,34 +20,34 @@
 /* EP_NUM */
 /* defines how many endpoints are used by the device */
 /*-------------------------------------------------------------*/
-#define EP_NUM                          (3)
+#define EP_NUM						  (3)
 
 /*-------------------------------------------------------------*/
 /* --------------   Buffer Description Table  -----------------*/
 /*-------------------------------------------------------------*/
 /* buffer table base address */
 
-#define BTABLE_ADDRESS      (0x00)
+#define BTABLE_ADDRESS	  (0x00)
 
 /* EP0  */
 /* rx/tx buffer base address */
-#define ENDP0_RXADDR        (0x18)
-#define ENDP0_TXADDR        (0x58)
+#define ENDP0_RXADDR		(0x18)
+#define ENDP0_TXADDR		(0x58)
 
 /* EP1  */
 /* tx buffer base address */
-#define ENDP1_TXADDR        (0x98)
+#define ENDP1_TXADDR		(0x98)
 
 /* EP2  */
 /* Rx buffer base address */
-#define ENDP2_RXADDR        (0xD8)
+#define ENDP2_RXADDR		(0xD8)
 
 
 /* ISTR events */
 /* IMR_MSK */
 /* mask defining which events has to be handled */
 /* by the device application software */
-#define IMR_MSK (CNTR_CTRM  | CNTR_RESETM)
+#define IMR_MSK	(CNTR_CTRM  | CNTR_RESETM)
 
 /* CTR service routines */
 /* associated to defined endpoints */
