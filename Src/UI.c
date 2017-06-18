@@ -12,6 +12,8 @@
 #include "own_sprintf.h"
 #include "I2C.h"
 
+#define EFFECTIVE_KEY	800	// No key to wait for the return time
+
 const char * const gSys_settings[] = {
 	"WkTemp ",
 	"StbTemp",
@@ -25,7 +27,7 @@ const char * const gSys_settings[] = {
 
 /******************************************************************************/
 uint8_t gTemp_array[16 * 16 + 16];
-uint16_t gTemp_array_u16[208];
+uint16_t gTemp_array_uint16_t[208];
 typedef struct {
 	uint32_t gCont;
 	uint8_t direction_flag;
@@ -33,8 +35,10 @@ typedef struct {
 	uint8_t digit;
 	uint8_t gUp_flag, gDown_flag, gLevel_flag, gTempset_showctrl;
 	uint8_t Exit_pos;
+	uint8_t gSet_opt;
 } UI_Context_t;
-UI_Context_t UI_Context;
+
+UI_Context_t UI_Context = { .gSet_opt = HD };
 
 int32_t gSet_table[9][3] = {	{ 4000,  1000, 100},
 								{ 4000,  1000, 100},
@@ -69,7 +73,10 @@ uint8_t Ver_s[] = {  /*12*16*/
 };
 
 /******************************************************************************/
-
+void Set_gSet_opt(uint8_t opt)
+{
+	UI_Context.gSet_opt = opt;
+}
 
 uint8_t Get_Exit_pos(void)
 {
@@ -180,12 +187,13 @@ void Show_Volt(void)
 }
 
 /*******************************************************************************
-@@name  Display_Temp
-@@brief 显示温度
-@@param x:显示位置 Temp:温度
+@@name	Display_Temp
+@@brief	Display temperature
+@@param	x: position
+		temp: temperature
 @@return NULL
 *******************************************************************************/
-void Display_Temp(uint8_t x,s16 temp)
+void Display_Temp(uint8_t x, int16_t temp)
 {
 	char Str[8];
 
@@ -289,8 +297,9 @@ void Show_Notice(void)
 
 /*******************************************************************************
 @@name  Show_Ver
-@@brief 显示版本
-@@param ver 版本号flag (0 :滚动显示 )(1不滚动)
+@@brief Display version
+@@param	ver: version number
+		flag (0: scroll display) (1 does not scroll)
 @@return NULL
 *******************************************************************************/
 void Show_Ver(uint8_t ver[], uint8_t flag)
@@ -299,9 +308,9 @@ void Show_Ver(uint8_t ver[], uint8_t flag)
 	int k,i;
 	uint8_t temp0, temp1, temp2;
 
-	if (ver[2] >= '0' && ver[2] < ('9' + 1))  temp1 = ver[2] - '0';
-	if (ver[3] >= '0' && ver[3] < ('9' + 1))  temp2 = ver[3] - '0';
-	if (ver[0] >= '0' && ver[0] < ('9' + 1))  temp0 = ver[0] - '0';
+	if (ver[2] >= '0' && ver[2] <= '9')  temp1 = ver[2] - '0';
+	if (ver[3] >= '0' && ver[3] <= '9')  temp2 = ver[3] - '0';
+	if (ver[0] >= '0' && ver[0] <= '9')  temp0 = ver[0] - '0';
 
 	for (i = 0; i < 24; i++)
 	{
@@ -334,7 +343,7 @@ void Show_Ver(uint8_t ver[], uint8_t flag)
 
 /*******************************************************************************
 @@name  Show_Config
-@@brief 显示CONFIG
+@@brief Show CONFIG
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -387,8 +396,9 @@ void Show_TempDown(int16_t temp, int16_t dst_temp)
 }
 /*******************************************************************************
 @@name  Show_Cal
-@@brief 显示校准结果
-@@param flag = 1 校准成功 flag = 2 校准失败
+@@brief Display calibration results
+@@param flag = 1 calibration successful
+		flag = 2 calibration failed
 @@return NULL
 *******************************************************************************/
 void Show_Cal(uint8_t flag)
@@ -408,15 +418,15 @@ void Show_Cal(uint8_t flag)
 }
 /*******************************************************************************
 @@name  Show_Warning
-@@brief 显示警告界面
+@@brief The warning screen is displayed
 @@param NULL
 @@return NULL
 *******************************************************************************/
 void Show_Warning(void)
 {
+	static uint8_t flag = 0;
 	uint8_t i;
 	uint8_t* ptr;
-	static uint8_t flag = 0;
 
 	switch(Get_AlarmType())
 	{
@@ -435,10 +445,14 @@ void Show_Warning(void)
 	}
 
 	Oled_DrawArea(0,0,16,16,(uint8_t*)Warning + 20 * 7);
-	if (flag == 0) {
-		for(i = 2; i < 9; i++)  Oled_DrawArea(10 * i,0,10,16,(uint8_t*)ptr +  (i - 2) * 20);
+	if (flag == 0)
+	{
+		for(i = 2; i < 9; i++)
+		  Oled_DrawArea(10 * i, 0, 10, 16, ptr +  (i - 2) * 20);
 		flag = 1;
-	} else {
+	}
+	else
+	{
 		Clean_Char(16, 80);
 		flag = 0;
 	}
@@ -446,19 +460,21 @@ void Show_Warning(void)
 
 /*******************************************************************************
 @@name  Show_OrderChar
-@@brief 横向动态显示字符
-@@param  ptr:字节库num:个数width:宽度
+@@brief Horizontal dynamic display of characters
+@@param	ptr: byte library
+		num: number of
+		width: width
 @@return NULL
 *******************************************************************************/
 void Show_OrderChar(uint8_t* ptr, uint8_t num, uint8_t width)
 {
 	static uint8_t i = 1, j = 0, k = 0, m = 10;
-	// i是源数组开始位
-	// j是目标数组开始位
-	// m是整个的长度
+	// i is the source array start bit
+	// j is the target array start bit
+	// m is the length of the whole
 
 	if (UI_Context.gLevel_flag == 0)
-	{	// 前一状态不是恒温
+	{	// The previous state is not constant
 		i = 1;
 		j = 0;
 		m = 8;
@@ -505,9 +521,9 @@ void Show_OrderChar(uint8_t* ptr, uint8_t num, uint8_t width)
 
 /*******************************************************************************
 @@name  Reverse_Bin8
-@@brief 按位逆向8位二进制  10101010 变为01010101
-@@param 逆向的数据
-@@return 逆向后的数据
+@@brief Bitwise reverse 8-bit binary 10101010 becomes 01010101
+@@param Reverse data
+@@return Reverse post data
 *******************************************************************************/
 uint8_t Reverse_Bin8(uint8_t data)
 {
@@ -526,10 +542,12 @@ uint8_t Reverse_Bin8(uint8_t data)
 	return result;
 }
 /*******************************************************************************
-@@name  Show_ReverseChar
-@@brief 竖向动态显示字符
-@@param  ptr:字节库   num:个数
-			  width:宽度   direction :方向 (0 up, 1 down)
+@@name	Show_ReverseChar
+@@brief	Vertical dynamic display of characters
+@@param	ptr:Byte library
+		num:The number of
+		width:width
+		direction: 0 up, 1 down
 @@return NULL
 *******************************************************************************/
 void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t direction)
@@ -540,7 +558,7 @@ void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t directi
 	if (direction == 0)
 	{	// up
 		if (UI_Context.gUp_flag == 0)
-		{	//前一状态不是加热
+		{	// The previous state is not heated
 			j = 0;
 			m = 0;
 			UI_Context.gUp_flag	 	= 1;
@@ -556,7 +574,7 @@ void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t directi
 	else if (direction == 1)
 	{
 		if (UI_Context.gDown_flag == 0)
-		{	//前一状态不是降温
+		{	// The previous state is not cooling
 			j = 0;
 			m = 0;
 			UI_Context.gUp_flag		= 0;
@@ -575,31 +593,32 @@ void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t directi
 		m = po_m[2];
 	}
 	for (i = 0; i < width * 2 * num; i++)
-		gTemp_array[i] = Reverse_Bin8(*(ptr + i)); //逆向8位
+		gTemp_array[i] = Reverse_Bin8(*(ptr + i)); // Reverse 8 bits
 
 	for (k = 0; k < width * 2 * num; k += width * 2)
 		for(i = 0; i < width ; i++)
 		{
-			gTemp_array_u16[i + k] = ((gTemp_array[i + k] & 0x00FF) << 8) | gTemp_array[i + k + width] ;//上半部下半部与成u16 便于移位
+			//The upper half of the upper half with the uint16_t is easy to shift
+			gTemp_array_uint16_t[i + k] = ((gTemp_array[i + k] & 0x00FF) << 8) | gTemp_array[i + k + width] ;
 			if (direction == 1)
 			{
-				if (j == 0)	gTemp_array_u16[i + k] <<= m;//下面空，上面显示
-				else		gTemp_array_u16[i + k] >>= j;//上面空，下面显示
+				if (j == 0)	gTemp_array_uint16_t[i + k] <<= m;//Below empty, above the show
+				else		gTemp_array_uint16_t[i + k] >>= j;//Below empty, above the show
 			}
 			else
-			{ //上
-				if (m == 0)	gTemp_array_u16[i + k] <<= j;//下面空，上面显示
-				else		gTemp_array_u16[i + k] >>= m;//上面空，下面显示
+			{ //on
+				if (m == 0)	gTemp_array_uint16_t[i + k] <<= j;//Below empty, above the show
+				else		gTemp_array_uint16_t[i + k] >>= m;//Below empty, above the show
 			}
-			gTemp_array[i + k] = (gTemp_array_u16[i + k] & 0xFF00) >> 8;
-			gTemp_array[i + k + width] = gTemp_array_u16[i + k] & 0x00FF;
+			gTemp_array[i + k] = (gTemp_array_uint16_t[i + k] & 0xFF00) >> 8;
+			gTemp_array[i + k + width] = gTemp_array_uint16_t[i + k] & 0x00FF;
 		}
 
 	for (i = 0; i < width * 2 * num; i++)
-		gTemp_array[i] = Reverse_Bin8(gTemp_array[i]); //移位后再逆向
+		gTemp_array[i] = Reverse_Bin8(gTemp_array[i]); //After the shift and then reverse
 
 	if (m == 0 && j == 16)
-	{	//全显示，换显示'头数'
+	{	// Full display, for the display 'head number'
 		j = 0;
 		m = 16;
 	}
@@ -607,7 +626,7 @@ void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t directi
 	else		m--;
 
 	if (direction == 0)
-	{	//up
+	{	// up
 		po_j[0] = j;
 		po_m[0] = m;
 	}
@@ -625,8 +644,9 @@ void Show_ReverseChar(uint8_t * ptr, uint8_t num, uint8_t width, uint8_t directi
 
 /*******************************************************************************
 @@name  Show_HeatingIcon
-@@brief 动态选择加热等状态标识
-@@param  ht_flag 恒温表示  active 移动标识
+@@brief Dynamic selection of heating and other status identification
+@@param	ht_flag Constant temperature
+		active Move the logo
 @@return NULL
 *******************************************************************************/
 void Show_HeatingIcon(uint32_t ht_flag, uint8_t active)
@@ -634,9 +654,9 @@ void Show_HeatingIcon(uint32_t ht_flag, uint8_t active)
 	uint8_t * ptr;
 
 	memset(gTemp_array,0,20);
-	if (ht_flag == 0)		Show_ReverseChar((uint8_t *)TempIcon, 1, 10, 0);		// 加热
-	else if (ht_flag == 1)	Show_ReverseChar((uint8_t *)TempIcon + 32, 1, 10, 1);// 降温
-	else if (ht_flag == 2)	Show_OrderChar((uint8_t *)TempIcon, 1, 10);			// 恒温
+	if (ht_flag == 0)		Show_ReverseChar((uint8_t *)TempIcon, 1, 10, 0);	// heating
+	else if (ht_flag == 1)	Show_ReverseChar((uint8_t *)TempIcon + 32, 1, 10, 1);// cooling down
+	else if (ht_flag == 2)	Show_OrderChar((uint8_t *)TempIcon, 1, 10);			// constant temperature
 
 	ptr = (uint8_t*)gTemp_array;
 	Oled_DrawArea(86, 0, 10, 16, (uint8_t*)ptr);
@@ -651,61 +671,70 @@ void Show_HeatingIcon(uint32_t ht_flag, uint8_t active)
 }
 /*******************************************************************************
 @@name  Display_Str
-@@brief 显示16*16字符串
-@@param x: 位置 str :显示字符串
+@@brief Display 16 * 16 strings
+@@param x: position str: display string
 @@return NULL
 *******************************************************************************/
-void Display_Str(uint8_t x, char* str)
+void Display_Str(uint8_t x, char * str)
 {
 	uint8_t* ptr;
 	uint8_t  temp;
 
 	if ((x < 1)||(x > 8))  x = 0;
 	else x--;
-	while(*str != 0) {
+	while(*str != 0)
+	{
 		temp = *str++;
-		if (temp == ' ') temp = 10;
-		else if (temp == '-')temp = 12;
-		else {
-			if ((temp >= '0') && (temp < ('9' + 1))) temp = temp - '0'; /* 0 --9 */
-			else {
-				if ((temp >= 0x41) && (temp <= 0x46))  temp = temp - 0x41 + 11;/*ABD*/
+		if (temp == ' ')
+			temp = 10;
+		else if (temp == '-')
+			temp = 12;
+		else
+		{
+			if (temp >= '0' && temp <= '9')
+				temp = temp - '0'; /* 0 --9 */
+			else
+			{
+				if ((temp >= 'A') && (temp <= 'F'))
+					temp = temp - 0x41 + 11;/*ABD*/
 				else return ;
 			}
 		}
-		ptr = (uint8_t*)wordlib;
-		ptr += temp*32;
-		Oled_DrawArea(x * 16,0,16,16,(uint8_t*)ptr);
+		ptr = (uint8_t *)wordlib;
+		ptr += temp * 32;
+		Oled_DrawArea(x * 16, 0, 16, 16, ptr);
 		x++;
 	}
 }
 
 /*******************************************************************************
 @@name  Display_Str
-@@brief 显示12*16字符串
-@@param x: 位置 str :显示字符串
-@@return NULL
+@@brief Display 12 * 16 strings
 *******************************************************************************/
-void Display_Str12(uint8_t x, char* str)
+void Display_Str12(uint8_t x, char * str)
 {
 	uint8_t* ptr;
 	uint8_t  temp;
 
-	if ((x < 1)||(x > 16))  x = 0;
-	else x--;
-	while(*str != 0) {
-		temp = *str++ - ' ';//得到偏移后的值
+	if (x < 1|| x > 16)	x = 0;
+	else					x--;
+	while(*str != 0)
+	{
+		temp = *str++ - ' ';//Get the offset value
 
-		ptr = (uint8_t*)ASCII12X16;
-		ptr += temp*24;
-		Oled_DrawArea(x * 12,0,12,16,(uint8_t*)ptr);
+		ptr = (uint8_t *)ASCII12X16;
+		ptr += temp * 24;
+		Oled_DrawArea(x * 12, 0, 12, 16, ptr);
 		x++;
 	}
 }
+
 /*******************************************************************************
-@@name  Display_Str
-@@brief 显示8*16字符串
-@@param x: 位置 str :显示字符串  mode: 1：小数点字库
+@@name	Display_Str
+@@brief	Display 8 * 16 string
+@@param	x: position
+		str: display the string
+		mode: 1：Decimal point font
 @@return NULL
 *******************************************************************************/
 void Display_Str8(uint16_t x, char * str , uint8_t mode)
@@ -735,88 +764,99 @@ void Display_Str8(uint16_t x, char * str , uint8_t mode)
 }
 /*******************************************************************************
 @@name  Triangle_Str
-@@brief 显示宽度为16的箭头
-@@param x: 位置 pos :箭头标志位
+@@brief Displays an arrow with a width of 16
+@@param	x: position
+		pos: arrow mark
 @@return NULL
 *******************************************************************************/
 void Triangle_Str(uint8_t x, uint8_t pos)
 {
 	uint8_t* ptr;
-	ptr = (uint8_t*)Triangle + 16*2*pos ;
-	Oled_DrawArea(x,0,16,16,(uint8_t*)ptr);
+	ptr = (uint8_t *)Triangle + 16 * 2 * pos ;
+	Oled_DrawArea(x, 0, 16, 16, ptr);
 }
 
 /*****************************************************************
-@@name  Show_Triangle
-@@brief 显示设置模式中按键方向的三角方向的各种形态
-@@param  empty_trgl: 0,1,2  不加粗,左加粗,右加粗
-		  fill_trgl:  0,1,2  不实体,左实体,右实体
+@@name	Show_Triangle
+@@brief	The various directions of the triangular direction of the
+		key direction in the setting mode are displayed
+@@param	empty_trgl: 0,1,2  Not bold, left bold, right bold
+		fill_trgl:  0,1,2  No entity, left entity, right entity
 @@return NULL
 *******************************************************************/
 void Show_Triangle(uint8_t empty_trgl,uint8_t fill_trgl)
 {
 	int j;
-	uint8_t* ptr;
+	uint8_t * ptr = (uint8_t *)Triangle;
 
-	ptr = (uint8_t*)Triangle;
-
-	if ((empty_trgl == 0)&&(fill_trgl == 0)) {
-		for(j = 0; j < 2; j++) {
-			if (j == 0)		ptr = Oled_DrawArea(0,0,16,16,(uint8_t*)ptr);
-			else if (j == 1)   ptr = Oled_DrawArea(5*16,0,16,16,(uint8_t*)ptr);
+	if (empty_trgl == 0 && fill_trgl == 0)
+	{
+		for (j = 0; j < 2; j++)
+		{
+			if (j == 0)			ptr = Oled_DrawArea(0, 0, 16, 16, ptr);
+			else if (j == 1)	ptr = Oled_DrawArea(5 * 16, 0, 16, 16, ptr);
 		}
-	} else if ((empty_trgl != 0)&&(fill_trgl == 0)) {
-		if (empty_trgl == 1) {
+	}
+	else if ((empty_trgl != 0)&&(fill_trgl == 0))
+	{
+		if (empty_trgl == 1)
+		{
 			ptr += 32;
-			Oled_DrawArea(5*16,0,16,16,(uint8_t*)ptr);
+			Oled_DrawArea(5 * 16, 0, 16, 16, ptr);
 			ptr += 32;
-			Oled_DrawArea(0,0,16,16,(uint8_t*)ptr);
-		} else if (empty_trgl == 2) {
-			Oled_DrawArea(0,0,16,16,(uint8_t*)ptr);
-			ptr += 32*3;
-			Oled_DrawArea(5*16,0,16,16,(uint8_t*)ptr);
+			Oled_DrawArea(0, 0, 16, 16, ptr);
 		}
-	} else if ((empty_trgl == 0)&&(fill_trgl != 0)) {
-		if (fill_trgl == 1) {
+		else if (empty_trgl == 2)
+		{
+			Oled_DrawArea(0, 0, 16, 16, ptr);
+			ptr += 32 * 3;
+			Oled_DrawArea(5 * 16, 0, 16, 16, ptr);
+		}
+	}
+	else if (empty_trgl == 0 && fill_trgl != 0)
+	{
+		if (fill_trgl == 1)
+		{
 			ptr += 32;
-			Oled_DrawArea(5*16,0,16,16,(uint8_t*)ptr);
-			ptr += 32*3;
-			Oled_DrawArea(0,0,16,16,(uint8_t*)ptr);
-		} else if (fill_trgl == 2) {
-			Oled_DrawArea(0,0,16,16,(uint8_t*)ptr);
+			Oled_DrawArea(5 * 16, 0, 16, 16, ptr);
+			ptr += 32 * 3;
+			Oled_DrawArea(0, 0, 16, 16, ptr);
+		}
+		else if (fill_trgl == 2)
+		{
+			Oled_DrawArea(0, 0, 16, 16, ptr);
 			ptr += 32*5;
-			Oled_DrawArea(5*16,0,16,16,(uint8_t*)ptr);
+			Oled_DrawArea(5 * 16, 0, 16, 16, ptr);
 		}
 	}
 }
 
 /*******************************************************************************
 @@name  Display_Str6	   
-@@brief 显示宽度为6的字符串
-@@param x: 位置 str :显示字符串
-@@return NULL
+@@brief Displays a string with a width of 6
 *******************************************************************************/
-void Display_Str6(uint8_t x, char* str)
+void Display_Str6(uint8_t x, char * str)
 {
-	uint8_t* ptr;
+	uint8_t * ptr;
 	uint8_t  temp;
   
-	if ((x < 1)||(x > 96))  x = 0;
-	else x--;
-	while(*str != 0) {
-		temp = *str++ - ' ';//得到偏移后的值
+	if (x < 1 || x > 96)	x = 0;
+	else					x--;
 
-		ptr = (uint8_t*)ASCII6X12;
-		ptr += temp*12;
-		Oled_DrawArea(x,0,6,12,(uint8_t*)ptr);
+	while(*str != 0)
+	{
+		temp = *str++ - ' ';// Get the offset value
+
+		ptr = (uint8_t *)ASCII6X12;
+		ptr += temp * 12;
+		Oled_DrawArea(x, 0, 6, 12, ptr);
 		x = x + 6;
 	}
 }
 
 /*******************************************************************************
 @@name  Display_Str10
-@@brief 显示宽度为10的字符串
-@@param x: 位置 str :显示字符串
+@@brief Displays a string of width 10
 @@return NULL
 *******************************************************************************/
 void Display_Str10(uint16_t x, char * str)
@@ -833,7 +873,7 @@ void Display_Str10(uint16_t x, char * str)
 			temp = 12;
 		else
 		{
-			if (temp >= '0' && temp < ('9' + 1))
+			if (temp >= '0' && temp <= '9')
 				temp = temp - '0'; /* 0 --9 */
 			else
 				temp = 10;
@@ -848,11 +888,12 @@ void Display_Str10(uint16_t x, char * str)
 
 /*******************************************************************************
 @@name  Print_Integer
-@@brief 整形数据打印函数
-@@param data 数据,posi 位置
+@@brief Integer data print function
+@@param data data
+		posi position
 @@return NULL
 *******************************************************************************/
-void Print_Integer(s32 data,uint8_t posi)
+void Print_Integer(s32 data, uint8_t posi)
 {
 	char str[8];
 
@@ -860,28 +901,27 @@ void Print_Integer(s32 data,uint8_t posi)
 	own_sprintf(str,"%d",data);
 	Display_Str(posi,str);
 }
+
 /*******************************************************************************
 @@name  Calculated_Digit 
-@@brief 计算一个整数的位数
-@@param number ：整数
-@@return 整数的位数
+@@brief Calculates the number of bits of an integer
+@@param number：Integer
+@@return The number of integers
 *******************************************************************************/
 uint8_t Calculated_Digit(int number)
 {
 	int n = 0;
-	while(number!=0)
+	while(number != 0)
 	{
-		number = number/10;
+		number = number / 10;
 		n++;
 	}
 	return n;
 }
 
-uint8_t gSet_opt = HD; //项目标志位
-#define EFFECTIVE_KEY 800			  //无按键等待返回时间
 /*******************************************************************************
 @@name  SetOpt_Detailed
-@@brief 设置选中项具体信息
+@@brief Set the selected item specific information
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -897,7 +937,7 @@ void SetOpt_Detailed(void)
 	Delay_Ms(300);
 	Set_LongKeyFlag(1);
 	Set_gKey(NO_KEY);
-
+	uint8_t gSet_opt = UI_Context.gSet_opt;
 	switch(gSet_opt){ // Under different options
 	case WKT:
 	case SDT:
@@ -924,7 +964,7 @@ void SetOpt_Detailed(void)
 		temporary_set = (int *)&device_info.handers;
 		break;
 	}
-  /*----------------Range and increase unit assignment-------------------*/
+  	/*----------------Range and increase unit assignment-------------------*/
 	max_value = gSet_table[gSet_opt][0];
 	min_value = gSet_table[gSet_opt][1];
 	step = gSet_table[gSet_opt][2];
@@ -990,8 +1030,8 @@ void SetOpt_Detailed(void)
 		}
 		else if (Get_gKey() == (KEY_CN | KEY_V1))// Continuous reduction
 		{
-			if (gSet_opt == DGC && UI_Context.gTemperatureshowflag > 0)// Switch the temperature mode
-			{
+			if (gSet_opt == DGC && UI_Context.gTemperatureshowflag > 0)
+			{	// Switch the temperature mode
 				UI_Context.gTemperatureshowflag--;
 				device_info.t_work = TemperatureShow_Change(1,device_info.t_work);
 				device_info.t_standby = TemperatureShow_Change(1,device_info.t_standby);
@@ -1000,9 +1040,11 @@ void SetOpt_Detailed(void)
 			}
 			else if (gSet_opt != DGC)
 			{
-				if (*temporary_set > min_value) {//大于最小值(可以减少)
+				if (*temporary_set > min_value)
+				{	// Greater than the minimum (can be reduced)
 					*temporary_set -= step;
-					if (*temporary_set < min_value) *temporary_set = min_value;//小于最小值(不能减少)
+					if (*temporary_set < min_value)
+						*temporary_set = min_value; // Less than the minimum (can not be reduced)
 				}
 			}
 			Delay_Ms(100);
@@ -1012,10 +1054,10 @@ void SetOpt_Detailed(void)
 			UI_Context.direction_flag = 1;
 			SetOpt_UI(1);
 		}
-		else if (Get_gKey() == (KEY_CN | KEY_V2))//连续加
-		{
-			if (gSet_opt == DGC && UI_Context.gTemperatureshowflag < 1)//切换温度模式
-			{
+		else if (Get_gKey() == (KEY_CN | KEY_V2))
+		{	// Continuous plus
+			if (gSet_opt == DGC && UI_Context.gTemperatureshowflag < 1)
+			{	// Switch the temperature mode
 				UI_Context.gTemperatureshowflag++;
 				device_info.t_work = TemperatureShow_Change(0,device_info.t_work);
 				device_info.t_standby = TemperatureShow_Change(0,device_info.t_standby);
@@ -1035,11 +1077,13 @@ void SetOpt_Detailed(void)
 			UI_Context.direction_flag = 2;
 			SetOpt_UI(1);
 		}
-		else if (Get_gKey() == (KEY_CN | KEY_V3))//双键同时按，退出设置
-		{
+		else if (Get_gKey() == (KEY_CN | KEY_V3))
+		{	// Double key at the same time press, exit settings
 			EFFECTIVE_KEY_TIMER = 0;
 		}
+
 		Clear_Watchdog();
+
 		if (EFFECTIVE_KEY_TIMER == 0)
 		{
 			Set_LongKeyFlag(0);
@@ -1054,7 +1098,7 @@ void SetOpt_Detailed(void)
 
 /*******************************************************************************
 @@name  SetOpt_Proc  
-@@brief 设置参数过程  
+@@brief Set the parameter procedure
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -1072,7 +1116,7 @@ void SetOpt_Proc(void)
 		UI_Context.Exit_pos = 0;
 
 	if ((Get_gKey() & KEY_CN) == KEY_CN)
-	{	//After long press, within 1S can no longer press
+	{	// After long press, within 1S can no longer press
 		Set_LongKeyFlag(0);
 		KD_TIMER = 100;
 	}
@@ -1082,16 +1126,16 @@ void SetOpt_Proc(void)
 	
 	if (Get_gKey() == KEY_V1)
 	{	// Stand-alone left and right keys to select menu items
-		if (gSet_opt > WKT)	gSet_opt--;
-		else				gSet_opt = EXW;
+		if (UI_Context.gSet_opt > WKT)	UI_Context.gSet_opt--;
+		else							UI_Context.gSet_opt = EXW;
 		Set_gKey(NO_KEY);
 		EFFECTIVE_KEY_TIMER = EFFECTIVE_KEY;
 		Clear_Screen();
 	}
 	else if (Get_gKey() == KEY_V2)
 	{
-		if (gSet_opt < EXW)	gSet_opt++;
-		else				gSet_opt = WKT;
+		if (UI_Context.gSet_opt < EXW)	UI_Context.gSet_opt++;
+		else							UI_Context.gSet_opt = WKT;
 		Set_gKey(NO_KEY);
 		EFFECTIVE_KEY_TIMER = EFFECTIVE_KEY;
 		Clear_Screen();
@@ -1102,17 +1146,17 @@ void SetOpt_Proc(void)
 		) // Enter the settings for the selected item
 	{
 		UI_TIMER = 0;
-		if (gSet_opt != EXW && gSet_opt != WDJ)
+		if (UI_Context.gSet_opt != EXW && UI_Context.gSet_opt != WDJ)
 		{
 			SetOpt_Detailed();
 		}
-		else if (gSet_opt == EXW)
+		else if (UI_Context.gSet_opt == EXW)
 		{	// Initialization
 			Restore_Setting();
 			Set_gKey(NO_KEY);
 			Clear_Screen();
 		}
-		else if (gSet_opt == WDJ)
+		else if (UI_Context.gSet_opt == WDJ)
 		{	// Calibration
 			Clear_Watchdog();
 			Delay_Ms(1000);
@@ -1147,8 +1191,8 @@ void SetOpt_Proc(void)
 }
 /*******************************************************************************
 @@name  SetOpt_UI
-@@brief 设置参数显示
-@@param key:闪烁开关
+@@brief Set the parameter display
+@@param key:Flashing switch
 @@return NULL
 *******************************************************************************/
 void SetOpt_UI(uint8_t key)
@@ -1160,46 +1204,46 @@ void SetOpt_UI(uint8_t key)
 	uint8_t buf_L[2] = "<";
 	int16_t temp_val;
 
-	if (gSet_opt != EXW && gSet_opt != WDJ)
-		Display_Str8(0, (char *)(gSys_settings[gSet_opt]), 0);
+	if (UI_Context.gSet_opt != EXW && UI_Context.gSet_opt != WDJ)
+		Display_Str8(0, (char *)(gSys_settings[UI_Context.gSet_opt]), 0);
 
-	if (gSet_opt == WKT)
+	if (UI_Context.gSet_opt == WKT)
 	{
 		own_sprintf((char *)buf,"%d",device_info.t_work / 10);
 		UI_Context.digit = Calculated_Digit(device_info.t_work / 10);
 	}
-	else if (gSet_opt == SDT)
+	else if (UI_Context.gSet_opt == SDT)
 	{
 		own_sprintf((char *)buf,"%d",device_info.t_standby / 10);
 		UI_Context.digit = Calculated_Digit(device_info.t_standby / 10);
 	}
-	else if (gSet_opt == WTT)
+	else if (UI_Context.gSet_opt == WTT)
 	{
 		own_sprintf((char *)buf,"%d",device_info.wait_time / 100);
 		UI_Context.digit = Calculated_Digit(device_info.wait_time / 100);
 	}
-	else if (gSet_opt == IDT)
+	else if (UI_Context.gSet_opt == IDT)
 	{
 		own_sprintf((char *)buf,"%d",device_info.idle_time / 100);
 		UI_Context.digit = Calculated_Digit(device_info.idle_time / 100);
 	}
-	else if (gSet_opt == STP)
+	else if (UI_Context.gSet_opt == STP)
 	{
 		own_sprintf((char *)buf,"%d",device_info.t_step / 10);
 		UI_Context.digit = Calculated_Digit(device_info.t_step / 10);
 	}
-	else if (gSet_opt == TOV)
+	else if (UI_Context.gSet_opt == TOV)
 	{
 		own_sprintf((char *)buf,"%d",Get_gTurn_offv() / 10);
 		own_sprintf((char *)buf_TOV,"%d",Get_gTurn_offv() % 10);
 		UI_Context.digit = Calculated_Digit(Get_gTurn_offv());
 	}
-	else if (gSet_opt == DGC)
+	else if (UI_Context.gSet_opt == DGC)
 	{
 		strcpy((char *)buf, (UI_Context.gTemperatureshowflag == 0)	? "CT" : "FT");
 		UI_Context.digit = 2;
 	}
-	else if (gSet_opt == HD)
+	else if (UI_Context.gSet_opt == HD)
 	{
 		strcpy((char *)buf, (device_info.handers == 0) ? "RT" : "LT");
 
@@ -1210,17 +1254,17 @@ void SetOpt_UI(uint8_t key)
 		}
 		UI_Context.digit = 2;
 	}
-	else if (gSet_opt == EXW)
+	else if (UI_Context.gSet_opt == EXW)
 		own_sprintf((char *)buf, " Factory Reset");
 
 	if (key == 1)
 	{
 		if (UI_TIMER < HIGHLIGHT_FREQUENCY)
 		{	// Display
-			if (UI_Context.direction_flag == 1)//左
-			{
+			if (UI_Context.direction_flag == 1)
+			{	// left
 				Display_Str8(SET_INFO_X, (char *)buf_L, 0);// <
-				if (gSet_opt == TOV){						 
+				if (UI_Context.gSet_opt == TOV){						 
 					Display_Str8(SET_PROMPT_X, (char *)buf, 0);
 					Display_Str8(SET_PROMPT_X + UI_Context.digit - 1, (char *)buf_TOV, 1);
 				}
@@ -1231,23 +1275,23 @@ void SetOpt_UI(uint8_t key)
 			else if (UI_Context.direction_flag == 2)
 			{	// Right
 				Display_Str8(SET_PROMPT_X-1, " ", 0);
-				if (gSet_opt == TOV)
+				if (UI_Context.gSet_opt == TOV)
 				{
 					Display_Str8(SET_PROMPT_X, (char *)buf, 0);
 					Display_Str8(SET_PROMPT_X + UI_Context.digit - 1, (char *)buf_TOV, 1);
 				}
-				else	Display_Str8(SET_PROMPT_X, (char *)buf, 0);//数值
+				else	Display_Str8(SET_PROMPT_X, (char *)buf, 0);// Value
 				Display_Str8(SET_PROMPT_X + UI_Context.digit, (char *)buf_R, 0);//>
 			}
 			else
 			{	// No operation
 				Display_Str8(SET_INFO_X, (char *)buf_L, 0);//<
-				if (gSet_opt == TOV)
+				if (UI_Context.gSet_opt == TOV)
 				{
 					Display_Str8(SET_PROMPT_X, (char *)buf, 0);
 					Display_Str8(SET_PROMPT_X + UI_Context.digit - 1,(char *)buf_TOV,1);
 				}
-				else	Display_Str8(SET_PROMPT_X, (char *)buf, 0);//数值
+				else	Display_Str8(SET_PROMPT_X, (char *)buf, 0);// Value
 				Display_Str8(SET_PROMPT_X + UI_Context.digit, (char *)buf_R, 0);//>
 			} 
 			if (UI_TIMER == 0)
@@ -1264,7 +1308,7 @@ void SetOpt_UI(uint8_t key)
 	}
 	else
 	{	// Did not turn on the flashing switch
-		if (gSet_opt == WDJ)
+		if (UI_Context.gSet_opt == WDJ)
 		{	// Thermometer and voltage display
 			if (UI_TIMER == 0)
 			{
@@ -1281,14 +1325,14 @@ void SetOpt_UI(uint8_t key)
 				UI_TIMER = 20;
 			}
 		}
-		else if (gSet_opt == EXW) // Restore factory equipment
+		else if (UI_Context.gSet_opt == EXW) // Restore factory equipment
 		{
 			Display_Str6(4, (char *)buf);
 		}
 		else
 		{   
 			Display_Str8(SET_INFO_X, " ", 0);
-			if (gSet_opt == TOV)
+			if (UI_Context.gSet_opt == TOV)
 			{
 				Display_Str8(SET_PROMPT_X,(char *)buf, 0);
 				Display_Str8(SET_PROMPT_X + UI_Context.digit - 1, (char *)buf_TOV, 1);
@@ -1374,20 +1418,20 @@ uint8_t Show_TempReverse(uint8_t num, uint8_t width, uint8_t direction)
 	for (k = (3 - num) * width * 2; k < width * 2 * 3; k += width * 2)
 		for (i = 0; i < width ; i++)
 		{
-			// The upper half of the upper half with the u16 is easy to shift
-			gTemp_array_u16[i + k] = ((gTemp_array[i + k] & 0x00FF) << 8) | gTemp_array[i + k + width] ;
+			// The upper half of the upper half with the uint16_t is easy to shift
+			gTemp_array_uint16_t[i + k] = ((gTemp_array[i + k] & 0x00FF) << 8) | gTemp_array[i + k + width] ;
 			if (direction == 0)
 			{	// on
-				if (m == 0)	gTemp_array_u16[i + k] <<= j;// Below empty, above the show
-				else		gTemp_array_u16[i + k] >>= m;// Above the empty, the following shows
+				if (m == 0)	gTemp_array_uint16_t[i + k] <<= j;// Below empty, above the show
+				else		gTemp_array_uint16_t[i + k] >>= m;// Above the empty, the following shows
 			}
 			else
 			{
-				if (j == 0)	gTemp_array_u16[i + k] <<= m;// Below empty, above the show
-				else		gTemp_array_u16[i + k] >>= j;// Above the empty, the following shows
+				if (j == 0)	gTemp_array_uint16_t[i + k] <<= m;// Below empty, above the show
+				else		gTemp_array_uint16_t[i + k] >>= j;// Above the empty, the following shows
 			}
-			gTemp_array[i + k] = (gTemp_array_u16[i + k] & 0xFF00) >> 8;
-			gTemp_array[i + k + width] = gTemp_array_u16[i + k] & 0x00FF;
+			gTemp_array[i + k] = (gTemp_array_uint16_t[i + k] & 0xFF00) >> 8;
+			gTemp_array[i + k + width] = gTemp_array_uint16_t[i + k] & 0x00FF;
 		}
 	for (i = 0; i < width * 2; i++)
 	{
@@ -1399,7 +1443,7 @@ uint8_t Show_TempReverse(uint8_t num, uint8_t width, uint8_t direction)
 
 	ptr = (uint8_t*)gTemp_array;
 	for (i = 1; i <= 4; i++)
-		ptr = Oled_DrawArea(16 * i, 0, 16, 16, (uint8_t *)ptr);
+		ptr = Oled_DrawArea(16 * i, 0, 16, 16, ptr);
 	if ((m == 0 && j == 0) || (m == 0 && j == 16))
 		return 0 ;
 
@@ -1419,7 +1463,7 @@ void Show_Set(void)
 	uint8_t m ,k;
 	int16_t num_temp = device_info.t_work;
 	
-	Shift_Char((uint8_t*)Triangle + 0 * 32, 0);		//<
+	Shift_Char((uint8_t*)Triangle + 0 * 32, 0);	//<
 	m = num_temp / 1000;   						// Hundred
 	Shift_Char((uint8_t *)wordlib + m * 32, 1);
 	k = (num_temp - m * 1000)/100;				// Ten
@@ -1427,12 +1471,7 @@ void Show_Set(void)
 	m = (num_temp - m * 1000 - k * 100)/10;		// One
 	Shift_Char((uint8_t *)wordlib + m * 32, 3);
 	
-	Shift_Char(
-		(uint8_t *)wordlib + (
-			(UI_Context.gTemperatureshowflag)
-			? 15
-			: 13
-		) * 32, 4); // F
+	Shift_Char((uint8_t *)wordlib + ((UI_Context.gTemperatureshowflag) ? 15 : 13) * 32, 4); // F
 	
 	Shift_Char((uint8_t *)Triangle + 1 * 32, 5);
 }
@@ -1444,12 +1483,12 @@ void Show_Set(void)
 *******************************************************************************/
 uint8_t Roll_Num(uint16_t step, uint8_t flag)
 {
-	u16 b1,b2,g1,g2;
-	s16 num_temp;
+	uint16_t b1, b2, g1, g2;
+	int16_t num_temp;
 
 	num_temp = device_info.t_work;	
-	b2 = (num_temp) / 1000;	   
-	g2 = (num_temp) / 100;		
+	b2 = (num_temp) / 1000;
+	g2 = (num_temp) / 100;
 
 	if (flag == 0)
 	{
@@ -1779,28 +1818,32 @@ void OLed_Display(void)
 			config_show = 3;
 		}
 		break;
+#if 0
+	case THERMOMETER://Thermometer mode
+		if (gCont == 0)
+		{
+			gCont = 1;
+			Clear_Screen();//Clear screen
+		}
+		if (gCalib_flag != 0)
+		{
+			// Display calibration is complete
+			Show_Cal(gCalib_flag);
+			gCalib_flag = 0;
+			Clear_Screen();
+		}
+		if (UI_TIMER == 0)
+		{
+			temp_val = Get_Temp(0);
+			if (Get_TemperatureShowFlag() == 1)
+				temp_val = TemperatureShow_Change(0,temp_val);
 
-//	case THERMOMETER://温度计模式
-//		if (gCont == 0) {
-//			gCont = 1;
-//			Clear_Screen();//清屏
-//		}
-//		if (gCalib_flag != 0) {
-//			//显示校准完成
-//			Show_Cal(gCalib_flag);
-//			gCalib_flag = 0;
-//			Clear_Screen();
-//		}
-//		if (UI_TIMER == 0) {
-//			temp_val = Get_Temp(0);
-//			if (Get_TemperatureShowFlag() == 1) {
-//				temp_val = TemperatureShow_Change(0,temp_val);
-//			}
-//			Display_Temp(1,temp_val/10);
-//			Display_Str(6,"F");
-//			UI_TIMER = 20;
-//		}
-//		break;
+			Display_Temp(1,temp_val/10);
+			Display_Str(6,"F");
+			UI_TIMER = 20;
+		}
+		break;
+#endif
 	case ALARM:
 		if (UI_Context.gCont == 0)
 		{

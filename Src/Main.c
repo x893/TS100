@@ -33,7 +33,7 @@ int main(void)
 
 	System_Init();
 	Disk_BuffInit();
-	Config_Analysis();	// Start virtual u disk
+	Config_Analysis();	// Start virtual U disk
 
 	APP_Init();
 	Init_Oled();
@@ -48,7 +48,7 @@ int main(void)
 	while (1)
 	{
 		Clear_Watchdog();
-		if (Get_CtrlStatus() != CONFIG  && LEAVE_WAIT_TIMER == 0)
+		if (Get_CtrlStatus() != CONFIG && LEAVE_WAIT_TIMER == 0)
 		{
 			Check_Accelerated();
 			LEAVE_WAIT_TIMER = 50;

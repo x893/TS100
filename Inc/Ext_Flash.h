@@ -1,9 +1,9 @@
 #ifndef __EXT_FLASH_H
 #define __EXT_FLASH_H
-//#include "stm32f10x_lib.h"
+
 #include "STM32F10x.h"
 
-extern u8 flash_mode;
+extern uint8_t flash_mode;
 #define FLASH_2M  1
 #define FLASH_8M  2
 //#define W25Q64BV

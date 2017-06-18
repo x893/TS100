@@ -6,7 +6,7 @@
 #define DEVICEADDR_OLED  0x3C
 
 void Init_Oled(void);
-void Sc_Pt(uint8_t Co);
+void Sc_Pt(uint8_t contrast);
 void Oled_DisplayOn(void);
 void Oled_DisplayOff(void);
 void Set_ShowPos(uint8_t x, uint8_t y);

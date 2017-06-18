@@ -61,19 +61,19 @@ uint8_t gOled_param[] = {	// 46
 
 /*******************************************************************************
 @@name  Sc_Pt
-@@brief 屏幕保护改变屏幕对比度
-@@param Co屏幕对比度参数
+@@brief Screen saver changes the screen contrast
+@@param Co screen contrast parameters
 @@return NULL
 *******************************************************************************/
-void Sc_Pt(uint8_t Co) // screen protector
+void Sc_Pt(uint8_t contrast) // screen protector
 {
-	uint8_t pt[4] = { 0x80, 0x81, 0x80, Co };
+	uint8_t pt[4] = { 0x80, 0x81, 0x80, contrast };
 	I2C_PageWrite(pt, 4, DEVICEADDR_OLED);
 }
 
 /*******************************************************************************
 @@name  Oled_DisplayOn
-@@brief 打开OLED显示
+@@brief Open the OLED display
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -85,7 +85,7 @@ void Oled_DisplayOn(void)
 
 /*******************************************************************************
 @@name  Oled_DisplayOff
-@@brief 关闭OLED显示
+@@brief Turn off the OLED display
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -97,9 +97,9 @@ void Oled_DisplayOff(void)
 
 /*******************************************************************************
 @@name  Data_Command
-@@brief 将显示的宽度以及显示的输入传入OLED
-@@param wide 宽,ptr 库指针
-@@return 下一库指针
+@@brief The width of the display and the displayed input are passed to the OLED
+@@param Wide, ptr library pointer
+@@return The next library pointer
 *******************************************************************************/
 uint8_t * Data_Command(uint16_t len, uint8_t * ptr)
 {
@@ -115,9 +115,10 @@ uint8_t * Data_Command(uint16_t len, uint8_t * ptr)
 }
 
 /*******************************************************************************
-@@name  Set_ShowPos
-@@brief 要显示内容的位置
-@@param x:横坐标,y:纵坐标(0,8,16,24)
+@@name	Set_ShowPos
+@@brief	The location where the content is to be displayed
+@@param	x: position
+		y:(position 0,8,16,24)
 @@return NULL
 *******************************************************************************/
 static uint8_t pos_param[8] = { 0x80, 0xB0, 0x80, 0x21, 0x80, 0x20, 0x80, 0x7F };
@@ -176,7 +177,7 @@ void Clean_Char(uint8_t k, uint8_t wide)
 
 /*******************************************************************************
 @@name  Init_Oled
-@@brief 初始化LED设置
+@@brief Initialize LED settings
 @@param NULL
 @@return NULL
 *******************************************************************************/

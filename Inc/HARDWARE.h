@@ -18,7 +18,7 @@ typedef enum VOL_CLASS {
 typedef struct {
 	int32_t  gZerop_ad;
 	uint32_t gTurn_offv;
-	uint32_t gKey_in;
+	uint16_t gKey_in;
 	uint8_t gAlarm_type;
 	uint8_t gCalib_flag;
 	uint8_t gLongkey_flag;
@@ -35,13 +35,12 @@ void Set_gTurn_offv(uint32_t value);
 int32_t Get_gZerop_ad(void);
 void Set_gZerop_ad(int32_t value);
 
-uint32_t Get_gKey(void);
-void Set_gKey(uint32_t key);
-
+uint16_t Get_gKey(void);
+void Set_gKey(uint16_t key);
 void Set_LongKeyFlag(uint32_t flag);
+
 void Zero_Calibration(void);
 int Read_Vb(uint8_t flag);
-void Scan_Key(void);
 uint32_t Get_SlAvg(uint32_t avg_data);
 int Get_TempSlAvg(int avg_data);
 uint32_t Get_AvgAd(void);

@@ -4,24 +4,22 @@
 #include "BIOS.h"
 
 
-#define OK           0            // 操作完成
-#define SEC_ERR      1            // 扇区读写错误
-#define TMAX         100000       // 超时限制
+#define OK           0            //  Operation is complete
+#define SEC_ERR      1            //  Sector read and write errors
+#define TMAX         100000       //  Timeout limit
 
-u32 Mass_Memory_Size;
-u32 Mass_Block_Size;
-u32 Mass_Block_Count;
-u32 Tout;
+uint32_t Mass_Memory_Size;
+uint32_t Mass_Block_Size;
+uint32_t Mass_Block_Count;
+uint32_t Tout;
+uint8_t  flash_mode;
 
-
-u8 flash_mode;
-
-void ExtFLASH_SectorErase(u32 SectorAddr);
+void ExtFLASH_SectorErase(uint32_t SectorAddr);
 
 /*******************************************************************************
  SPI_FLASH_SectorErase  : Sector Erases the specified FLASH Page.(4k/sector)
 *******************************************************************************/
-void ExtFLASH_SectorErase(u32 SectorAddr)
+void ExtFLASH_SectorErase(uint32_t SectorAddr)
 {
     ExtFlash_WriteEnable();
     ExtFlash_CS_LOW();
@@ -34,9 +32,9 @@ void ExtFLASH_SectorErase(u32 SectorAddr)
 }
 
 
-void ExtFlash_PageWR(u8* pBuffer, u32 WriteAddr)
+void ExtFlash_PageWR(u8* pBuffer, uint32_t WriteAddr)
 {
-    u32 addr,i,j;
+    uint32_t addr,i,j;
     u8* ptr;
     u8  page=0,flag=0,write_mode;
     u8  buffer[256];
@@ -82,7 +80,7 @@ void ExtFlash_PageWR(u8* pBuffer, u32 WriteAddr)
 /*******************************************************************************
  写FLASH页(256 Bytes)： Mode=0: 从0变1数据改写   Mode=1: 数据重写
 *******************************************************************************/
-void ExtFlash_PageProg(u8* pBuffer, u32 WriteAddr,u8 CMD)
+void ExtFlash_PageProg(u8* pBuffer, uint32_t WriteAddr,u8 CMD)
 {
     u16   Lenght = 256;
 
@@ -105,7 +103,7 @@ void ExtFlash_PageProg(u8* pBuffer, u32 WriteAddr,u8 CMD)
 /*******************************************************************************
  SPI_FLASH_BufferRead
 *******************************************************************************/
-void ExtFlash_PageRD(u8* pBuffer, u32 ReadAddr, u16 Lenght)
+void ExtFlash_PageRD(u8* pBuffer, uint32_t ReadAddr, u16 Lenght)
 {
     ExtFlash_CS_HIGH();
     ExtFlash_WaitForWriteEnd();

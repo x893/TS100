@@ -15,8 +15,12 @@
 #define SDA_PIN				GPIO_Pin_7
 #define	SCL_PIN				GPIO_Pin_6
 
+#define SI_DATA		25
+
 #define KEY1_PIN			GPIO_Pin_9
 #define KEY2_PIN			GPIO_Pin_6
+#define KEYA_READ			((~GPIOA->IDR) & KEY1_PIN)
+#define KEYB_READ			((~GPIOA->IDR) & KEY2_PIN)
 #define KEY_1				!(GPIOA->IDR & KEY1_PIN)
 #define KEY_2				!(GPIOA->IDR & KEY2_PIN)
 #define KEY_DFU				KEY_1

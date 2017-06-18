@@ -137,7 +137,7 @@ void NVIC_Config(uint16_t tab_offset)
 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
-	nvic_init.NVIC_IRQChannel				   = USB_LP_CAN1_RX0_IRQn;
+	nvic_init.NVIC_IRQChannel					= USB_LP_CAN1_RX0_IRQn;
 	nvic_init.NVIC_IRQChannelPreemptionPriority = 2;
 	nvic_init.NVIC_IRQChannelSubPriority		= 0;
 	nvic_init.NVIC_IRQChannelCmd				= ENABLE;
@@ -294,7 +294,7 @@ void Init_Timers(void)
 	TIM_TimeBaseInit	(TIM2, &TIM_TimeBaseStructure);
 	TIM_ARRPreloadConfig(TIM2, ENABLE);
 	TIM_ITConfig		(TIM2, TIM_IT_Update, ENABLE);
-	TIM_Cmd			 (TIM2, ENABLE);
+	TIM_Cmd				(TIM2, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler		= 48-1;			// (48MHz)/48 = 1MHz
 	TIM_TimeBaseStructure.TIM_Period		= 50-1;			// Interrupt per 50us

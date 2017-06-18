@@ -52,9 +52,9 @@ void Set_gCalib_flag(uint8_t flag)
 
 /*******************************************************************************
 @@name  Get_CalFlag
-@@brief 读取校准状态
+@@brief Read the calibration status
 @@param NULL
-@@return 校准状态标志
+@@return Calibration status flag
 *******************************************************************************/
 uint32_t Get_CalFlag(void)
 {
@@ -63,28 +63,28 @@ uint32_t Get_CalFlag(void)
 
 /*******************************************************************************
 @@name  Get_gKey
-@@brief 获取按键状态
+@@brief Get the key state
 @@param NULL
-@@return 按键状态
+@@return Get the key state
 *******************************************************************************/
-uint32_t Get_gKey(void)
+uint16_t Get_gKey(void)
 {
 	return Hard_Context.gKey_in;
 }
 /*******************************************************************************
 @@name  Set_gKey
-@@brief 设置按键状态
-@@param 要设置的按键状态
+@@brief Set the key state
+@@param The key state to set
 @@return NULL
 *******************************************************************************/
-void Set_gKey(uint32_t key)
+void Set_gKey(uint16_t key)
 {
 	Hard_Context.gKey_in = key;
 }
 /*******************************************************************************
 @@name  Set_LongKeyFlag
-@@brief 设置长按键标志
-@@param 0 :不可以长按键 1: 可以长按
+@@brief Set the long button
+@@param 0: can not press long key 1: can press long press
 @@return NULL
 *******************************************************************************/
 void Set_LongKeyFlag(uint32_t flag)
@@ -93,13 +93,13 @@ void Set_LongKeyFlag(uint32_t flag)
 }
 /*******************************************************************************
 @@name  Get_AlarmType
-@@brief 获取报警类型
+@@brief Get the alarm type
 @@param NULL
-@@return  警告类型
-			0:正常
+@@return  Warning type
+			0:normal
 			1:sen - err
-			2:超温
-			3:超压
+			2:Overtemperature
+			3:Overpressure
 *******************************************************************************/
 u8 Get_AlarmType(void)
 {
@@ -107,12 +107,12 @@ u8 Get_AlarmType(void)
 }
 /*******************************************************************************
 @@name  Set_AlarmType
-@@brief 设置报警类型
-@@param  警告类型
-			0:正常
+@@brief Set the alarm type
+@@param  Warning type
+			0:normal
 			1:sen - err
-			2:超温
-			3:超压
+			2:Overtemperature
+			3:Overpressure
 @@return NULL
 *******************************************************************************/
 void Set_AlarmType(uint8_t type)
@@ -121,15 +121,15 @@ void Set_AlarmType(uint8_t type)
 }
 /*******************************************************************************
 @@name  Read_Vb
-@@brief 读取电源电压值
-@@param 标志
+@@brief Read the supply voltage value
+@@param Logo
 @@return NULL
 *******************************************************************************/
-int Read_Vb(u8 flag)
+int Read_Vb(uint8_t flag)
 {
 	uint32_t tmp, i, sum = 0;
 
-	for(i = 0; i < 10; i++)
+	for (i = 0; i < 10; i++)
 	{
 		tmp = ADC_GetConversionValue(ADC2);
 		sum += tmp;
@@ -148,8 +148,10 @@ int Read_Vb(u8 flag)
 		{
 			if (flag == 0 )
 			{
-				if (tmp >= gRate[i]) break;
-			} else if (tmp >= Hard_Context.gTurn_offv)
+				if (tmp >= gRate[i])
+					break;
+			}
+			else if (tmp >= Hard_Context.gTurn_offv)
 				break;
 		}
 		else if (tmp >= gRate[i])
@@ -158,65 +160,16 @@ int Read_Vb(u8 flag)
 	return (i+1);
 }
 /*******************************************************************************
-@@name  Scan_Key
-@@brief 扫描键盘(50ms每次)
+@@name  Read_Key
+@@brief
 @@param NULL
 @@return NULL
 *******************************************************************************/
-void Scan_Key(void)
-{
-	static uint32_t p_cnt = 0, key_statuslast = 0;
-	uint32_t key_state = 0;
-
-	if (device_info.handers)
-	{	// Left hand mode, the key is in turn
-		if ((~GPIOA->IDR) & KEY1_PIN) key_state |= KEY_V2;
-		if ((~GPIOA->IDR) & KEY2_PIN) key_state |= KEY_V1;
-	}
-	else
-	{
-		if ((~GPIOA->IDR) & KEY1_PIN) key_state |= KEY_V1;
-		if ((~GPIOA->IDR) & KEY2_PIN) key_state |= KEY_V2;
-	}
-
-	if (key_state == 0)
-	{
-		p_cnt = 0;
-		return ;
-	}
-
-	if (Hard_Context.gLongkey_flag == 1)
-	{	// LongKey_flag : Limit the long press
-		if (key_statuslast == key_state)
-		{
-			p_cnt++;
-			if (p_cnt > 25)
-				Set_gKey(KEY_CN | key_state);
-		}
-		else
-		{
-			p_cnt = 0;
-			key_statuslast = key_state;
-			Set_gKey(key_state);
-		}
-	}
-	else
-	{
-		p_cnt = 0;
-		key_statuslast = key_state;
-		Set_gKey(key_state);
-	}
-}
-
-#define SI_DATA		25
-#define KEYA_READ	((~GPIOA->IDR) & KEY1_PIN)
-#define KEYB_READ	((~GPIOA->IDR) & KEY2_PIN)
-
 void Key_Read( void )
 {
-	static u16 buttonA_cnt = 0, buttonB_cnt = 0;
-	static u16 kgap = 0; // Key gap twice
-	static u16 press_buttonA = 0, press_buttonB = 0;
+	static uint16_t buttonA_cnt = 0, buttonB_cnt = 0;
+	static uint16_t kgap = 0; // Key gap twice
+	static uint16_t press_buttonA = 0, press_buttonB = 0;
 
 	press_buttonA = KEYA_READ;
 	press_buttonB = KEYB_READ;
@@ -237,7 +190,7 @@ void Key_Read( void )
 		buttonB_cnt++;
 	}
 
-	if (buttonA_cnt >= SI_DATA && buttonB_cnt >= SI_DATA && Hard_Context.gLongkey_flag)
+	if (Hard_Context.gLongkey_flag && buttonA_cnt >= SI_DATA && buttonB_cnt >= SI_DATA)
 		Set_gKey(KEY_CN | KEY_V3);
 	else
 	{
@@ -252,6 +205,7 @@ void Key_Read( void )
 			else						Set_gKey(KEY_CN | KEY_V2);
 		}
 	}
+
 	if (press_buttonA == 0)
 	{
 		if (buttonA_cnt < SI_DATA && buttonA_cnt != 0 && buttonB_cnt < SI_DATA && buttonB_cnt != 0)
@@ -267,6 +221,7 @@ void Key_Read( void )
 		kgap++;
 		buttonA_cnt = 0;
 	}
+
 	if (press_buttonB == 0)
 	{
 		if (buttonA_cnt < SI_DATA && buttonA_cnt != 0 && buttonB_cnt < SI_DATA && buttonB_cnt != 0)
@@ -398,7 +353,7 @@ int Get_SensorTmp(void)
 
 /*******************************************************************************
 @@name  Zero_Calibration
-@@brief 校准零点AD
+@@brief Calibration zero
 @@param NULL
 @@return NULL
 *******************************************************************************/
@@ -424,15 +379,16 @@ void Zero_Calibration(void)
 	}
 }
 /******************************************************************************* 
-@@name  Get_Temp
-@@brief 根据冷端,热端温度,补偿AD计算温度
-@@param wk_temp 工作温度
-@@return 实际温度
+@@name	Get_Temp
+@@brief	Calculate the temperature according to the cold end,
+		the hot end temperature, and the compensation AD
+@@param Wk_temp operating temperature
+@@return Actual temperature
 *******************************************************************************/
 int16_t Get_Temp(int16_t wk_temp)
 {
 	int ad_value, cool_tmp, compensation = 0;
-	static u16 cnt = 0, h_cnt = 0;
+	static uint16_t cnt = 0, h_cnt = 0;
 	int16_t rl_temp = 0;
 
 	ad_value = Get_AvgAd();

@@ -44,5 +44,6 @@ void OLed_Display(void);
 void Show_Cal(uint8_t flag);
 void Show_Config(void);
 void SetOpt_Detailed(void);
+void Set_gSet_opt(uint8_t opt);
 
 #endif

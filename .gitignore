@@ -3,3 +3,4 @@ build/
 *.sfr
 *.uvopt
 *.uvgui.*
+*.log

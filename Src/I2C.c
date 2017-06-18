@@ -25,9 +25,6 @@ static uint8_t Sim_I2C_WR_Byte(uint8_t data);
 
 /*******************************************************************************
 @@name  Delay_uS
-@@brief  软件延时
-@@param us 
-@@return NULL
 *******************************************************************************/
 void Delay_uS(uint32_t us)
 {
@@ -38,9 +35,6 @@ void Delay_uS(uint32_t us)
 
 /*******************************************************************************
 @@name  Sim_I2C_Set
-@@brief  配置I2C
-@@param pin:GPIO_Pin_	  status:电平状态
-@@return NULL
 *******************************************************************************/
 #define SDA_High()			GPIOB->BSRR = SDA_PIN
 #define SDA_Low()			GPIOB->BRR  = SDA_PIN
@@ -49,9 +43,6 @@ void Delay_uS(uint32_t us)
 
 /*******************************************************************************
 @@name  Sim_I2C_Start
-@@brief  开始
-@@param NULL
-@@return NULL
 *******************************************************************************/
 void Sim_I2C_Start(void)
 {
@@ -68,9 +59,6 @@ void Sim_I2C_Start(void)
 
 /*******************************************************************************
 @@name  Sim_I2C_Stop
-@@brief  停止
-@@param NULL
-@@return NULL
 *******************************************************************************/
 void Sim_I2C_Stop(void)
 {
@@ -90,9 +78,6 @@ void Sim_I2C_Stop(void)
 
 /*******************************************************************************
 @@name  Sim_I2C_WR_Byte
-@@brief 向I2C写八位数据
-@@param data要写入的数据
-@@return SUCCEED:成功		 FAILURE:失败
 *******************************************************************************/
 uint8_t Sim_I2C_WR_Byte(u8 data)
 {
@@ -134,9 +119,6 @@ uint8_t Sim_I2C_WR_Byte(u8 data)
 
 /*******************************************************************************
 @@name  Sim_I2C_RD_Byte
-@@brief 向I2C读八位数据
-@@param more
-@@return 读出的八位数据
 *******************************************************************************/
 uint8_t Sim_I2C_RD_Byte(uint8_t more)
 {
@@ -169,9 +151,12 @@ uint8_t Sim_I2C_RD_Byte(uint8_t more)
 }
 
 /*******************************************************************************
-@@name  I2C_PageWrite
-@@brief 向 地址 deviceaddr 写入numbyte个字节的数据，写入的内容在pbuf
-@@param pbuf 写入的内容，numbyte 为写入的字节数，deviceaddr为写入的地址
+@@name	I2C_PageWrite
+@@brief	Write the numbyte bytes of data to the address deviceaddr,
+		writing the contents at pbuf
+@@param	pbuf the contents of the write,
+		numbyte for the number of bytes written,
+		deviceaddr for the write address
 @@return NULL
 *******************************************************************************/
 void I2C_PageWrite(uint8_t * pbuf, uint16_t numbyte, uint8_t deviceaddr )
@@ -188,10 +173,12 @@ void I2C_PageWrite(uint8_t * pbuf, uint16_t numbyte, uint8_t deviceaddr )
 }
 /*******************************************************************************
 @@name  I2C_PageRead
-@@brief 向I2C读八位数据
-@@param  pbuf 读出来的存放地址 numbyte为读出来的字节数 
-		  deviceaddr设备地址 readaddr读取的内容地址
-@@return 读出的八位数据
+@@brief Read 8-bit data to I2C
+@@param	pbuf Read out the storage address
+		numbyte The number of bytes read out
+		deviceaddr Device address
+		readaddr Read the content address
+@@return Read out the eight data
 *******************************************************************************/
 void I2C_PageRead(uint8_t* pbuf,  uint16_t numbyte, uint8_t deviceaddr, uint8_t readaddr)
 {

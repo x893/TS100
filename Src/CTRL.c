@@ -14,6 +14,7 @@
 
 /******************************************************************************/
 extern uint8_t gSet_opt;
+
 /******************************************************************************/
 
 DEVICE_INFO_SYS device_info;
@@ -41,11 +42,11 @@ CTRL_Context_t CTRL_Context = {
 
 const DEVICE_INFO_SYS info_def = {
     "2.17",			// Ver
-    2000,			// T_Standby;    // 200??C=1800  2520,?????¶?
-    3000,			// T_Work;      // 350??C=3362, ?????¶?
+    2000,			// T_Standby;	// 200??C=1800  2520,?????¶?
+    3000,			// T_Work;		// 350??C=3362, ?????¶?
     100,			// T_Step;
-    3 * 60 * 100,	// Wait_Time;    //3*60*100   3  mintute
-    6 * 60 * 100,	// Idle_Time;   //6*60*100  6 minute
+    3 * 60 * 100,	// Wait_Time;	//3*60*100   3  mintute
+    6 * 60 * 100,	// Idle_Time;	//6*60*100  6 minute
     0				// handers
 };
 
@@ -86,20 +87,14 @@ void Set_Handers(uint8_t handers)
 }
 
 /*******************************************************************************
-@@name  Set_CtrlStatus
-@@brief ÉèÖÃµ±Ç°×´Ì¬
-@@param status ÉèÖÃµÄ×´Ì¬
-@@return ÎÞ
+
 *******************************************************************************/
 void Set_CtrlStatus(u8 status)
 {
 	CTRL_Context.gCtrl_status = status;
 }
 /*******************************************************************************
-@@name  Set_PrevTemp
-@@brief ±£´æÇ°Ò»ÎÂ¶È
-@@param temp Ç°Ò»ÎÂ¶ÈÖµ
-@@return ÎÞ
+
 *******************************************************************************/
 void Set_PrevTemp(s16 temp)
 {
@@ -107,20 +102,15 @@ void Set_PrevTemp(s16 temp)
 }
 
 /*******************************************************************************
-@@name  Get_HtFlag
-@@brief »ñÈ¡µ±Ç°¼ÓÈÈ±êÖ¾,¼ÓÈÈ±êÖ¾ÓÉ¼ÓÈÈÊ±¼ä¾ö¶¨
-@@param NULL
-@@return µ±Ç°¼ÓÈÈ±êÖ¾
+
 *******************************************************************************/
 u16 Get_HtFlag(void)
 {
 	return CTRL_Context.gHt_flag;
 }
+
 /*******************************************************************************
-@@name  Get_TempVal
-@@brief  »ñÈ¡µ±Ç°ÎÂ¶ÈµÄÖµ
-@@param NULL
-@@return µ±Ç°ÎÂ¶È
+
 *******************************************************************************/
 s16 Get_TempVal(void)
 {
@@ -128,20 +118,15 @@ s16 Get_TempVal(void)
 }
 
 /*******************************************************************************
-@@name  System_Init
-@@brief  ÏµÍ³³õÊ¼»¯
-@@param NULL
-@@return NULL
+
 *******************************************************************************/
 void System_Init(void)
 {
 	memcpy((void *)&device_info, (void*)&info_def, sizeof(device_info));
 }
+
 /*******************************************************************************
-@@name  PID_init
-@@brief  PIDÊý¾Ý³õÊ¼»¯
-@@param NULL
-@@return NULL
+
 *******************************************************************************/
 void Pid_Init(void)
 {
@@ -227,7 +212,7 @@ uint32_t Heating_Time(int16_t temp, int16_t wk_temp)
 @@param		NULL
 @@return	NULL
 *******************************************************************************/
-void Status_Tran(void)// State transition
+void Status_Tran(void) // State transition
 {
 	// Initial Standby Time Flag: 0 => Uninitialized, 1 => Initialized
 	static int16_t init_waitingtime = 0;
@@ -262,7 +247,7 @@ void Status_Tran(void)// State transition
 				SetOpt_UI(0);
 				EFFECTIVE_KEY_TIMER = 1000;	// Exit Setup Mode Time Initialization
 				Clear_Screen();
-				gSet_opt = HD;
+				Set_gSet_opt(HD);
 				Set_CtrlStatus(TEMP_SET);	// Go to setup mode
 				KD_TIMER = 50;
 			}
@@ -478,37 +463,43 @@ void Status_Tran(void)// State transition
 			Set_CtrlStatus(TEMP_CTR);
 		}
 		break;
-//	case THERMOMETER://ÎÂ¶È¼ÆÄ£Ê½
-//		if (KD_TIMER > 0) {
-//			Set_gKey(NO_KEY);
-//			break;
-//		}
-//		switch(Get_gKey()) {
-//		case KEY_CN | KEY_V1:
-//		case KEY_CN | KEY_V2:
-//		  back_prestatus = 1;
-//			break;
-//		case KEY_CN | KEY_V3:
-//			Zero_Calibration();//Ð£×¼Áãµã
-//			if (Get_CalFlag() == 1) {
-//				Disk_BuffInit();
-//				Config_Analysis();		 // Æô¶¯ÐéÄâUÅÌ
-//			}
-//			KD_TIMER = 200; //20150717 ÐÞ¸Ä
-//			break;
-//		default:
-//			break;
-//		}
-//		if (back_prestatus == 1) {
-//			back_prestatus = 0;
-//			Clear_HeatingTime();
-//			Set_CtrlStatus(IDLE);
-//			gPre_status = THERMOMETER;
-//			gIs_restartkey = 1;
-//			Set_LongKeyFlag(0);
-//			KD_TIMER = 50; //
-//		}
-//		break;
+#if 0
+	case THERMOMETER://ÎÂ¶È¼ÆÄ£Ê½
+		if (KD_TIMER > 0)
+		{
+			Set_gKey(NO_KEY);
+			break;
+		}
+		switch(Get_gKey())
+		{
+		case KEY_CN | KEY_V1:
+		case KEY_CN | KEY_V2:
+			back_prestatus = 1;
+			break;
+		case KEY_CN | KEY_V3:
+			Zero_Calibration();		//Ð£×¼Áãµã
+			if (Get_CalFlag() == 1)
+			{
+				Disk_BuffInit();
+				Config_Analysis();	// Æô¶¯ÐéÄâUÅÌ
+			}
+			KD_TIMER = 200;			//20150717 ÐÞ¸Ä
+			break;
+		default:
+			break;
+		}
+		if (back_prestatus == 1)
+		{
+			back_prestatus = 0;
+			Clear_HeatingTime();
+			Set_CtrlStatus(IDLE);
+			gPre_status = THERMOMETER;
+			gIs_restartkey = 1;
+			Set_LongKeyFlag(0);
+			KD_TIMER = 50;
+		}
+		break;
+#endif
 	case ALARM:	// Warning mode
 		switch(Get_AlarmType())
 		{
